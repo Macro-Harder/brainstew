@@ -51,7 +51,7 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str | list[str]], str]:
         if not sep:
             raise FrontmatterError(f"invalid frontmatter line: {line.strip()}")
         key = key.strip()
-        if not key or key not in _FIELDS or raw.strip() != raw.strip().strip():
+        if not key or key not in _FIELDS:
             raise FrontmatterError(f"unknown or invalid key: {key}")
         meta[key] = _parse_value(key, raw)
     return meta, "\n".join(lines[end + 1:]).strip()

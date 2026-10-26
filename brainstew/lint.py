@@ -1,7 +1,6 @@
 """Lint checks for the wiki."""
 
 import argparse
-import datetime
 import re
 import sys
 from collections import Counter
@@ -13,7 +12,6 @@ from brainstew.pages import LINK_RE, discover_pages
 
 REQUIRED = ("title", "type", "summary", "sources", "updated")
 FOLDER_OF = {"source": "sources", "entity": "entities", "concept": "concepts", "synthesis": "synthesis"}
-DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 LOG_HEADING_RE = re.compile(r"## \[\d{4}-\d{2}-\d{2}\] (ingest|query|lint|edit) \| \S")
 
 
@@ -25,24 +23,11 @@ class Issue:
     message: str
 
 
-def _valid_date(value: str) -> bool:
-    try:
-        datetime.date.fromisoformat(value)
-        return True
-    except ValueError:
-        return False
-
-
 def _check_page(page, issues: list[Issue]) -> None:
-    rel = str(page.path)
+    rel = f"wiki/{page.folder}/{page.slug}.md"
     missing = [f for f in REQUIRED if f not in page.meta]
     if missing:
         issues.append(Issue("ERROR", "FM01", rel, f"missing fields: {', '.join(missing)}"))
-    updated = page.meta.get("updated")
-    if isinstance(updated, str) and (
-        not DATE_RE.match(updated) or not _valid_date(updated)
-    ):
-        issues.append(Issue("ERROR", "FM02", rel, f"updated not YYYY-MM-DD: {updated}"))
     page_type = page.meta.get("type")
     if isinstance(page_type, str) and (
         page_type not in FOLDER_OF or FOLDER_OF[page_type] != page.folder
@@ -55,7 +40,7 @@ def lint(wiki: Path) -> list[Issue]:
     pages = []
     for path, page in discover_pages(wiki):
         if page is None:
-            issues.append(Issue("ERROR", "FM02", str(path), "invalid frontmatter"))
+            issues.append(Issue("ERROR", "FM02", f"wiki/{path.parent.name}/{path.name}", "invalid frontmatter"))
             continue
         pages.append(page)
         _check_page(page, issues)
@@ -63,7 +48,7 @@ def lint(wiki: Path) -> list[Issue]:
     slug_counts = Counter(p.slug for p in pages)
     slugs = set(slug_counts)
     for page in pages:
-        rel = str(page.path)
+        rel = f"wiki/{page.folder}/{page.slug}.md"
         if slug_counts[page.slug] > 1:
             issues.append(Issue("ERROR", "DU01", rel, f"duplicate slug: {page.slug}"))
         for slug in page.links:
@@ -85,7 +70,7 @@ def lint(wiki: Path) -> list[Issue]:
             issues.append(Issue("ERROR", "IX02", "wiki/index.md", f"unknown slug: [[{slug}]]"))
         for page in pages:
             if page.slug not in referenced:
-                issues.append(Issue("ERROR", "IX01", str(page.path), "not listed in index.md"))
+                issues.append(Issue("ERROR", "IX01", f"wiki/{page.folder}/{page.slug}.md", "not listed in index.md"))
 
     log = wiki / "log.md"
     if not log.is_file():
@@ -94,7 +79,6 @@ def lint(wiki: Path) -> list[Issue]:
         for line in log.read_text(encoding="utf-8").splitlines():
             if line.startswith("## ") and not LOG_HEADING_RE.match(line):
                 issues.append(Issue("ERROR", "LG01", "wiki/log.md", f"bad heading: {line}"))
-                break
 
     issues.sort(key=lambda i: (i.path, i.code))
     return issues

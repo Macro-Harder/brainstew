@@ -1,6 +1,7 @@
 """Tests for lint: one positive and one clean negative per code."""
 
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -96,6 +97,13 @@ def test_fm02_invalid_date(tmp_path: Path) -> None:
     assert "FM02" in codes(lint(wiki))
 
 
+def test_fm02_date_field_is_reported_via_frontmatter_error_only_once(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources", "See [[beta]].", updated="2026-13-40"))
+    issues = lint(wiki)
+    assert codes(issues).count("FM02") == 1
+
+
 def test_fm02_negative_valid_date(tmp_path: Path) -> None:
     wiki = make_wiki(tmp_path)
     write(wiki, "sources/alpha.md", page("Alpha", "sources", "See [[beta]].", updated="2026-02-28"))
@@ -150,7 +158,7 @@ def test_ix01_page_missing_from_index(tmp_path: Path) -> None:
     issues = lint(wiki)
     assert "IX01" in codes(issues)
     ix01 = next(i for i in issues if i.code == "IX01")
-    assert "gamma" in ix01.path
+    assert ix01.path == "wiki/concepts/gamma.md"
 
 
 def test_ix01_negative_listed_in_index(tmp_path: Path) -> None:
@@ -299,67 +307,53 @@ def test_cli_root_after_subcommand(tmp_path: Path) -> None:
     assert proc.stdout == "lint: 0 errors, 0 warnings\n"
 
 
-def test_end_to_end_example_wiki(tmp_path: Path) -> None:
-    root = tmp_path
-    (root / "raw").mkdir()
-    (root / "raw" / "fresnel-lens.txt").write_text(
-        "The Fresnel Lens and Lighthouse Illumination\n", encoding="utf-8"
+def test_cli_prog_and_description_match_spec() -> None:
+    import brainstew.cli as cli
+
+    assert cli.build_parser().prog == "brainstew"
+    assert cli.build_parser().description == (
+        "brainstew: tools for an LLM-maintained markdown wiki (search, lint, log)."
     )
-    wiki = root / "wiki"
-    for folder in ("sources", "entities", "concepts", "synthesis"):
-        (wiki / folder).mkdir(parents=True)
-    (wiki / "synthesis" / ".gitkeep").write_text("", encoding="utf-8")
-    write(wiki, "sources/fresnel-lens.md", page(
-        "Fresnel Lens", "sources",
-        "The Fresnel lens, invented by [[augustin-fresnel]], replaced weak reflector systems. "
-        "Its concentric rings focused light into a powerful beam. See also [[fresnel-lens-optics]] "
-        "and [[lighthouse-illumination]].",
-    ))
-    write(wiki, "entities/augustin-fresnel.md", page(
-        "Augustin Fresnel", "entities",
-        "Augustin-Jean Fresnel developed the stepped-ring lens described in [[fresnel-lens]].",
-    ))
-    write(wiki, "entities/lighthouse.md", page(
-        "Lighthouse", "entities",
-        "The [[fresnel-lens]] greatly increased the effective range of [[lighthouse-illumination]].",
-    ))
-    write(wiki, "concepts/fresnel-lens-optics.md", page(
-        "Fresnel Lens Optics", "concepts",
-        "Concentric prismatic rings that focus light. Details appear in [[fresnel-lens]] "
-        "and were developed by [[augustin-fresnel]].",
-    ))
-    write(wiki, "concepts/lighthouse-illumination.md", page(
-        "Lighthouse Illumination", "concepts",
-        "The [[fresnel-lens]] replaced fires and reflectors, improving safety for [[lighthouse]] structures.",
-    ))
-    write(wiki, "index.md", (
-        "# Wiki Index\n"
-        "\n"
-        "## Sources\n"
-        "- [[fresnel-lens]] - Fresnel Lens summary\n"
-        "\n"
-        "## Entities\n"
-        "- [[augustin-fresnel]] - Augustin Fresnel summary\n"
-        "- [[lighthouse]] - Lighthouse summary\n"
-        "\n"
-        "## Concepts\n"
-        "- [[fresnel-lens-optics]] - Fresnel Lens Optics summary\n"
-        "- [[lighthouse-illumination]] - Lighthouse Illumination summary\n"
-        "\n"
-        "## Synthesis\n"
-    ))
-    write(wiki, "log.md", (
-        "# Wiki Log\n"
-        "\n"
-        "## [2026-01-20] ingest | Fresnel Lens\n"
-        "- Read raw/fresnel-lens.txt\n"
-        "- Created source, entity and concept pages\n"
-        "- Updated index.md\n"
-    ))
+    assert not hasattr(cli, "USAGE")
+
+
+def test_fm02_reported_path_is_wiki_relative(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", "---\ntitle: Alpha\n")
+    issues = lint(wiki)
+    fm02 = next(i for i in issues if i.code == "FM02")
+    assert fm02.path == "wiki/sources/alpha.md"
+
+
+def test_lg01_reports_all_bad_headings(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "log.md", "# Wiki Log\n\n## 2026-01-20 ingest First\n- a\n\n## 2026-01-21 query Second\n- b\n")
+    issues = lint(wiki)
+    lg01 = [i for i in issues if i.code == "LG01"]
+    assert len(lg01) == 2
+
+
+def test_end_to_end_example_wiki(tmp_path: Path) -> None:
+    example_dir = Path(__file__).resolve().parent.parent
+    for rel in (
+        "raw/fresnel-lens.txt",
+        "wiki/index.md",
+        "wiki/log.md",
+        "wiki/synthesis/.gitkeep",
+        "wiki/sources/fresnel-lens.md",
+        "wiki/entities/augustin-fresnel.md",
+        "wiki/entities/lighthouse.md",
+        "wiki/concepts/fresnel-lens-optics.md",
+        "wiki/concepts/lighthouse-illumination.md",
+    ):
+        dst = tmp_path / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(example_dir / rel, dst)
     proc = subprocess.run(
-        [sys.executable, "-m", "brainstew", "--root", str(root), "lint"],
+        [sys.executable, "-m", "brainstew", "--root", str(tmp_path), "lint"],
         capture_output=True,
         text=True,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert proc.stdout == "lint: 0 errors, 0 warnings\n"
+    assert proc.stderr == ""

@@ -62,6 +62,13 @@ def test_unknown_key() -> None:
         parse_frontmatter("---\nauthor: Someone\n---\n")
 
 
+def test_unknown_key_still_rejected_with_field_set_only() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\nauthor: Someone\n---\n")
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\n: novalue\n---\n")
+
+
 def test_invalid_date() -> None:
     with pytest.raises(FrontmatterError):
         parse_frontmatter("---\nupdated: 2026-13-45\n---\n")

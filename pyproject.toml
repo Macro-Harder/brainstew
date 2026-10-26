@@ -3,9 +3,9 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "llm-wiki-agenc"
+name = "brainstew"
 version = "0.1.0"
-description = "Minimal starter repo for the LLM Wiki pattern."
+description = "An LLM-maintained markdown wiki starter (LLM Wiki pattern)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

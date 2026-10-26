@@ -3,13 +3,11 @@
 import argparse
 import sys
 
-USAGE = "usage: python -m brainstew [--root PATH] {lint,search,log} ..."
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m brainstew",
-        description="Lint, search and log a small LLM-maintained wiki.",
+        prog="brainstew",
+        description="brainstew: tools for an LLM-maintained markdown wiki (search, lint, log).",
     )
     parser.add_argument("--root", default=".", help="wiki root (default: current dir)")
     sub = parser.add_subparsers(dest="command", required=True)
