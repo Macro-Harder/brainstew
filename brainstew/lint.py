@@ -9,7 +9,7 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from brainstew.frontmatter import FrontmatterError
+from brainstew.frontmatter import FrontmatterError, parse_frontmatter
 from brainstew.pages import LINK_RE, PAGE_DIRS, discover_pages
 
 REQUIRED = ("title", "type", "summary", "sources", "updated")
@@ -150,7 +150,12 @@ def lint(wiki: Path) -> list[Issue]:
             except UnicodeDecodeError:
                 issues.append(Issue("ERROR", "FM02", rel, "invalid UTF-8"))
             else:
-                issues.append(Issue("ERROR", "FM02", rel, "invalid frontmatter"))
+                try:
+                    parse_frontmatter(path.read_text(encoding="utf-8"))
+                    message = "invalid frontmatter"
+                except FrontmatterError as exc:
+                    message = str(exc)
+                issues.append(Issue("ERROR", "FM02", rel, message))
             continue
         pages.append(page)
         _check_page(page, issues)

@@ -24,11 +24,12 @@ def iter_page_files(wiki: Path) -> list[Path]:
     files: list[Path] = []
     for folder in PAGE_DIRS:
         d = Path(wiki) / folder
-        if d.is_dir():
-            files.extend(sorted(
-                p for p in d.iterdir()
-                if p.suffix == ".md" and not p.is_symlink() and p.is_file()
-            ))
+        if d.is_symlink() or not d.is_dir():
+            continue
+        files.extend(sorted(
+            p for p in d.iterdir()
+            if p.suffix == ".md" and not p.is_symlink() and p.is_file()
+        ))
     return files
 
 

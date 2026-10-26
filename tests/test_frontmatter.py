@@ -105,9 +105,9 @@ def test_comma_in_scalar() -> None:
         parse_frontmatter("---\ntitle: a, b\n---\n")
 
 
-def test_empty_list() -> None:
-    meta, _ = parse_frontmatter("---\ntags: []\n---\n")
-    assert meta["tags"] == []
+def test_empty_list_rejected() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntags: []\n---\n")
 
 
 def test_empty_text() -> None:
@@ -139,6 +139,22 @@ def test_duplicate_key_via_lint(tmp_path) -> None:
     issues = lint(wiki)
     fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/dup.md"]
     assert len(fm02) == 1
+
+
+def test_quoted_scalar_rejected() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter('---\ntitle: "A lens summary"\n---\n')
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntitle: 'A lens summary'\n---\n")
+
+
+def test_malformed_list_bracket_rejected() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntags: [item1, item2\n---\n")
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntags: item1, item2]\n---\n")
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntags: [item1, [item2]]\n---\n")
 
 
 def test_no_duplicate_keys_parses_cleanly() -> None:

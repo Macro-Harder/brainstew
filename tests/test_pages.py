@@ -109,6 +109,85 @@ def test_symlinked_page_is_not_linted_even_when_it_points_to_another_page(tmp_pa
     assert all("escape.md" not in p for p in paths)
 
 
+def test_symlinked_subdirectory_not_discovered(tmp_path: Path) -> None:
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "real.md", make_page("Real", "sources"))
+    (wiki / "sources" / "good.md").write_text(make_page("Good", "sources"), encoding="utf-8")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "leaked.md").write_text(make_page("Leaked", "sources"), encoding="utf-8")
+    (wiki / "sources" / "sub").symlink_to(outside)
+    pages = discover_pages(wiki)
+    paths = [p for p, _ in pages]
+    assert wiki / "sources" / "real.md" in paths
+    assert wiki / "sources" / "good.md" in paths
+    assert all(p.name != "leaked.md" for p in paths)
+    assert len(paths) == 2
+
+
+def test_symlinked_page_folder_not_discovered(tmp_path: Path) -> None:
+    wiki = tmp_path / "wiki"
+    wiki.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "leaked.md").write_text(make_page("Leaked", "sources"), encoding="utf-8")
+    (wiki / "sources").symlink_to(outside)
+    pages = discover_pages(wiki)
+    paths = [p for p, _ in pages]
+    assert all(p.name != "leaked.md" for p in paths)
+    assert not any(p.parent.name == "sources" for p in paths)
+
+
+def test_symlinked_subdirectory_not_read_by_search_or_lint(tmp_path: Path) -> None:
+    from brainstew.lint import lint
+    from brainstew.search import search
+
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "real.md", make_page("Real", "sources"))
+    (wiki / "sources" / "good.md").write_text(make_page("Good", "sources"), encoding="utf-8")
+    (wiki / "index.md").write_text("# Wiki Index\n", encoding="utf-8")
+    (wiki / "log.md").write_text("# Wiki Log\n", encoding="utf-8")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "leaked.md").write_text(make_page("Leaked", "sources"), encoding="utf-8")
+    (wiki / "sources" / "sub").symlink_to(outside)
+    assert search(wiki, "leaked") == []
+    assert search(wiki, "real") != []
+    issues = lint(wiki)
+    paths = [i.path for i in issues]
+    assert all("leaked.md" not in p for p in paths)
+
+
+def test_symlinked_non_page_dir_still_lints_clean(tmp_path: Path) -> None:
+    from brainstew.lint import lint
+
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "real.md", make_page("Real", "source", "See [[good]]."))
+    write_page(wiki, "sources", "good.md", make_page("Good", "source", "See [[thing]]."))
+    write_page(wiki, "entities", "thing.md", make_page("Thing", "entity", "See [[notion]]."))
+    write_page(wiki, "concepts", "notion.md", make_page("Notion", "concept", "See [[wrap]]."))
+    write_page(wiki, "synthesis", "wrap.md", make_page("Wrap", "synthesis", "See [[real]] and [[good]]."))
+    (wiki / "index.md").write_text(
+        "# Wiki Index\n\n"
+        "## Sources\n"
+        "- [[real]] - Real summary\n"
+        "- [[good]] - Good summary\n\n"
+        "## Entities\n"
+        "- [[thing]] - Thing summary\n\n"
+        "## Concepts\n"
+        "- [[notion]] - Notion summary\n\n"
+        "## Synthesis\n"
+        "- [[wrap]] - Wrap summary\n",
+        encoding="utf-8",
+    )
+    (wiki / "log.md").write_text("# Wiki Log\n", encoding="utf-8")
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "pic.png").write_text("", encoding="utf-8")
+    (wiki / "sources" / "assets").symlink_to(assets)
+    assert lint(wiki) == []
+
+
 def test_unreadable_page_reports_path_with_none(tmp_path: Path, monkeypatch) -> None:
     from pathlib import Path as _P
 

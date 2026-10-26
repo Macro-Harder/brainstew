@@ -22,10 +22,17 @@ def _parse_date(value: str) -> None:
 
 def _parse_value(key: str, raw: str) -> str | list[str]:
     raw = raw.strip()
-    if raw.startswith("[") and raw.endswith("]"):
-        inner = raw[1:-1].strip()
+    if '"' in raw or "'" in raw:
+        raise FrontmatterError(f"quoted value not allowed for {key}")
+    if "[" in raw or "]" in raw:
+        if not (raw.startswith("[") and raw.endswith("]")):
+            raise FrontmatterError(f"invalid inline list for {key}: {raw}")
+        inner = raw[1:-1]
+        if "[" in inner or "]" in inner:
+            raise FrontmatterError(f"nested brackets in inline list for {key}: {raw}")
+        inner = inner.strip()
         if not inner:
-            return []
+            raise FrontmatterError(f"empty inline list for {key}")
         return [item.strip() for item in inner.split(",")]
     if "," in raw or ":" in raw:
         raise FrontmatterError(f"invalid scalar value for {key}")
