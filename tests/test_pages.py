@@ -80,3 +80,58 @@ def test_unparseable_page_reports_path_with_none(tmp_path: Path) -> None:
     broken = dict(pages)
     assert broken[wiki / "sources" / "broken.md"] is None
     assert broken[wiki / "sources" / "good.md"] is not None
+
+
+def test_symlinked_page_outside_wiki_is_not_discovered(tmp_path: Path) -> None:
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "real.md", make_page("Real", "sources"))
+    (wiki / "sources" / "good.md").write_text(make_page("Good", "sources"), encoding="utf-8")
+    outside = tmp_path / "outside.md"
+    outside.write_text(make_page("Outside", "sources"), encoding="utf-8")
+    (wiki / "sources" / "escape.md").symlink_to(outside)
+    pages = discover_pages(wiki)
+    paths = [p for p, _ in pages]
+    assert wiki / "sources" / "escape.md" not in paths
+    assert wiki / "sources" / "real.md" in paths
+    assert wiki / "sources" / "good.md" in paths
+
+
+def test_symlinked_page_is_not_linted_even_when_it_points_to_another_page(tmp_path: Path) -> None:
+    from brainstew.lint import lint
+
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "real.md", make_page("Real", "sources"))
+    (wiki / "sources" / "escape.md").symlink_to(wiki / "sources" / "real.md")
+    (wiki / "index.md").write_text("# Wiki Index\n", encoding="utf-8")
+    (wiki / "log.md").write_text("# Wiki Log\n", encoding="utf-8")
+    issues = lint(wiki)
+    paths = [i.path for i in issues]
+    assert all("escape.md" not in p for p in paths)
+
+
+def test_unreadable_page_reports_path_with_none(tmp_path: Path, monkeypatch) -> None:
+    from pathlib import Path as _P
+
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "bad.md", make_page("Bad", "sources"))
+    (wiki / "sources" / "good.md").write_text(make_page("Good", "sources"), encoding="utf-8")
+
+    def boom(self, *args, **kwargs):
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(_P, "read_text", boom)
+    pages = discover_pages(wiki)
+    result = dict(pages)
+    assert result[wiki / "sources" / "bad.md"] is None
+    assert result[wiki / "sources" / "good.md"] is None
+
+
+def test_readable_page_loads_normally(tmp_path) -> None:
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "fine.md", make_page("Fine", "sources"))
+    pages = discover_pages(wiki)
+    assert len(pages) == 1
+    path, page = pages[0]
+    assert page is not None
+    assert path == wiki / "sources" / "fine.md"
+    assert page.slug == "fine"

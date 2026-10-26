@@ -403,6 +403,31 @@ def test_fm02_field_validation_negative(tmp_path: Path) -> None:
     assert "FM02" not in codes(lint(wiki))
 
 
+def test_fm02_sources_raw_path_escape_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    text = page("Alpha", "sources").replace("sources: [raw/a.txt]", "sources: [raw/../../outside.txt]")
+    write(wiki, "sources/alpha.md", text)
+    issues = lint(wiki)
+    fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/alpha.md"]
+    assert any("sources entry" in i.message for i in fm02)
+
+
+def test_fm02_sources_raw_path_dotdot_inside_raw_accepted(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    text = page("Alpha", "sources").replace("sources: [raw/a.txt]", "sources: [raw/../raw/a.txt]")
+    write(wiki, "sources/alpha.md", text)
+    issues = lint(wiki)
+    assert "FM02" not in codes(issues)
+
+
+def test_fm02_sources_raw_path_negative(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    text = page("Alpha", "sources").replace("sources: [raw/a.txt]", "sources: [raw/foo.txt, raw/sub/b.txt]")
+    write(wiki, "sources/alpha.md", text)
+    issues = lint(wiki)
+    assert "FM02" not in codes(issues)
+
+
 # --- index.md structure ---
 
 
@@ -434,6 +459,39 @@ def test_ix02_duplicate_entry_in_index(tmp_path: Path) -> None:
 
 def test_ix02_index_structure_negative(tmp_path: Path) -> None:
     assert "IX02" not in codes(lint(make_wiki(tmp_path)))
+
+
+def test_ix02_slug_in_wrong_section(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    text = INDEX.replace("- [[beta]] - Beta summary\n", "- [[beta]] - Beta summary\n- [[alpha]] - Alpha summary\n")
+    write(wiki, "index.md", text)
+    issues = lint(wiki)
+    ix02 = [i for i in issues if i.code == "IX02" and i.path == "wiki/index.md"]
+    assert any("belongs in Sources" in i.message for i in ix02)
+
+
+def test_ix02_slug_in_wrong_section_each_folder(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "concepts/gamma.md", page("Gamma", "concepts", "See [[alpha]]."))
+    write(wiki, "synthesis/delta.md", page("Delta", "synthesis", "See [[alpha]]."))
+    text = INDEX.replace(
+        "## Concepts\n",
+        "## Concepts\n- [[gamma]] - Gamma summary\n- [[delta]] - Delta summary\n",
+    )
+    write(wiki, "index.md", text)
+    issues = lint(wiki)
+    ix02 = [i for i in issues if i.code == "IX02" and i.path == "wiki/index.md"]
+    assert any("belongs in Synthesis" in i.message for i in ix02)
+
+
+def test_ix02_slug_in_correct_section_negative(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "concepts/gamma.md", page("Gamma", "concepts", "See [[alpha]]."))
+    text = INDEX.replace("## Concepts\n", "## Concepts\n- [[gamma]] - Gamma summary\n")
+    write(wiki, "index.md", text)
+    issues = lint(wiki)
+    assert "IX02" not in codes(issues)
+    assert "IX01" not in codes(issues)
 
 
 # --- log.md heading dates ---

@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import os
 import re
 import sys
 from collections import Counter
@@ -9,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from brainstew.frontmatter import FrontmatterError
-from brainstew.pages import LINK_RE, discover_pages
+from brainstew.pages import LINK_RE, PAGE_DIRS, discover_pages
 
 REQUIRED = ("title", "type", "summary", "sources", "updated")
 FOLDER_OF = {"source": "sources", "entity": "entities", "concept": "concepts", "synthesis": "synthesis"}
@@ -94,10 +95,20 @@ def _check_index(wiki: Path, pages, issues: list[Issue]) -> None:
             "ERROR", "IX02", "wiki/index.md",
             f"headings must be exactly {', '.join(INDEX_HEADINGS)} in that order",
         ))
+    page_by_slug = {p.slug: p for p in pages if p is not None}
+    section_of = {p.slug: INDEX_HEADINGS[PAGE_DIRS.index(p.folder)] for p in pages if p is not None}
     listed: Counter[str] = Counter()
-    for section in bullets.values():
-        for slug in section:
+    for heading, slugs in bullets.items():
+        for slug in slugs:
             listed[slug] += 1
+            if slug in page_by_slug:
+                page = page_by_slug[slug]
+                rel = f"wiki/{page.folder}/{page.slug}.md"
+                if heading != section_of[slug]:
+                    issues.append(Issue(
+                        "ERROR", "IX02", "wiki/index.md",
+                        f"[[{slug}]] listed under {heading}, belongs in {section_of[slug]}",
+                    ))
     for slug, count in listed.items():
         if slug not in page_slugs:
             issues.append(Issue("ERROR", "IX02", "wiki/index.md", f"unknown slug: [[{slug}]]"))
@@ -154,7 +165,10 @@ def lint(wiki: Path) -> list[Issue]:
         sources = page.meta.get("sources")
         if isinstance(sources, list):
             for item in sources:
-                if not isinstance(item, str) or not (item.startswith("raw/") or item in source_slugs):
+                if not isinstance(item, str) or not (
+                    item in source_slugs
+                    or (item.startswith("raw/") and os.path.normpath(item).startswith("raw/"))
+                ):
                     issues.append(Issue(
                         "ERROR", "FM02", rel,
                         f"sources entry must be a raw/ path or existing source-page slug: {item}",

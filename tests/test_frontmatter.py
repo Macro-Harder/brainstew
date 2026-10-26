@@ -1,5 +1,7 @@
 """Tests for the frontmatter parser."""
 
+from pathlib import Path
+
 import pytest
 
 from brainstew.frontmatter import FrontmatterError, parse_frontmatter
@@ -111,3 +113,35 @@ def test_empty_list() -> None:
 def test_empty_text() -> None:
     with pytest.raises(FrontmatterError):
         parse_frontmatter("")
+
+
+def test_duplicate_key_rejected() -> None:
+    text = BASE.replace(
+        "summary: A lens summary.\n",
+        "summary: A lens summary.\nsummary: Another summary.\n",
+    )
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter(text)
+
+
+def test_duplicate_key_via_lint(tmp_path) -> None:
+    from brainstew.lint import lint
+
+    wiki = tmp_path / "wiki"
+    (wiki / "sources").mkdir(parents=True)
+    text = BASE.replace(
+        "summary: A lens summary.\n",
+        "summary: A lens summary.\nsummary: Another summary.\n",
+    )
+    (wiki / "sources" / "dup.md").write_text(text, encoding="utf-8")
+    (wiki / "index.md").write_text("# Wiki Index\n", encoding="utf-8")
+    (wiki / "log.md").write_text("# Wiki Log\n", encoding="utf-8")
+    issues = lint(wiki)
+    fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/dup.md"]
+    assert len(fm02) == 1
+
+
+def test_no_duplicate_keys_parses_cleanly() -> None:
+    meta, body = parse_frontmatter(valid_text())
+    assert meta["title"] == "Fresnel Lens"
+    assert body == "Body text."

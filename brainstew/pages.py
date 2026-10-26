@@ -25,7 +25,10 @@ def iter_page_files(wiki: Path) -> list[Path]:
     for folder in PAGE_DIRS:
         d = Path(wiki) / folder
         if d.is_dir():
-            files.extend(sorted(p for p in d.iterdir() if p.is_file() and p.suffix == ".md"))
+            files.extend(sorted(
+                p for p in d.iterdir()
+                if p.suffix == ".md" and not p.is_symlink() and p.is_file()
+            ))
     return files
 
 
@@ -33,7 +36,7 @@ def load_page(path: Path) -> tuple[Path, Page | None]:
     """Read one page file; return (path, None) when frontmatter is invalid."""
     try:
         text = path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
+    except (UnicodeDecodeError, OSError):
         return path, None
     meta, body = parse_frontmatter(text)
     return path, Page(
@@ -56,6 +59,6 @@ def discover_pages(wiki: Path) -> list[tuple[Path, Page | None]]:
     for path in iter_page_files(Path(wiki)):
         try:
             out.append(load_page(path))
-        except ValueError:
+        except (ValueError, OSError):
             out.append((path, None))
     return out
