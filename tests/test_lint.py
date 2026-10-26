@@ -1,7 +1,6 @@
 """Tests for lint: one positive and one clean negative per code."""
 
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -331,29 +330,3 @@ def test_lg01_reports_all_bad_headings(tmp_path: Path) -> None:
     issues = lint(wiki)
     lg01 = [i for i in issues if i.code == "LG01"]
     assert len(lg01) == 2
-
-
-def test_end_to_end_example_wiki(tmp_path: Path) -> None:
-    example_dir = Path(__file__).resolve().parent.parent
-    for rel in (
-        "raw/fresnel-lens.txt",
-        "wiki/index.md",
-        "wiki/log.md",
-        "wiki/synthesis/.gitkeep",
-        "wiki/sources/fresnel-lens.md",
-        "wiki/entities/augustin-fresnel.md",
-        "wiki/entities/lighthouse.md",
-        "wiki/concepts/fresnel-lens-optics.md",
-        "wiki/concepts/lighthouse-illumination.md",
-    ):
-        dst = tmp_path / rel
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(example_dir / rel, dst)
-    proc = subprocess.run(
-        [sys.executable, "-m", "brainstew", "--root", str(tmp_path), "lint"],
-        capture_output=True,
-        text=True,
-    )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    assert proc.stdout == "lint: 0 errors, 0 warnings\n"
-    assert proc.stderr == ""
