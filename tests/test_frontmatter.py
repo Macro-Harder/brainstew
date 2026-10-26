@@ -74,6 +74,30 @@ def test_invalid_date() -> None:
         parse_frontmatter("---\nupdated: 2026-13-45\n---\n")
 
 
+def test_compact_date_rejected() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\nupdated: 20260120\n---\n")
+
+
+def test_week_date_rejected() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\nupdated: 2026-W04-2\n---\n")
+
+
+def test_impossible_calendar_date_rejected() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\nupdated: 2026-02-30\n---\n")
+
+
+def test_date_shape_and_validity_both_required() -> None:
+    # Right shape, impossible calendar date.
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\nupdated: 2026-99-99\n---\n")
+    # Wrong shape entirely.
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\nupdated: 20-01-20\n---\n")
+
+
 def test_comma_in_scalar() -> None:
     with pytest.raises(FrontmatterError):
         parse_frontmatter("---\ntitle: a, b\n---\n")

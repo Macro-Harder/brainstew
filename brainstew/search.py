@@ -40,6 +40,9 @@ def search(wiki: Path, query: str) -> list[tuple[Page, int]]:
 
 
 def run(args: argparse.Namespace) -> int:
+    if args.limit < 0:
+        print(f"error: --limit must be >= 0, got {args.limit}", file=sys.stderr)
+        return 2
     wiki = Path(args.root) / "wiki"
     if not wiki.is_dir():
         print(f"error: no wiki dir at {wiki}", file=sys.stderr)

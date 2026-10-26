@@ -125,6 +125,17 @@ def test_cli_missing_log_exit_two(tmp_path: Path, capsys) -> None:
     assert "no log.md" in err
 
 
+def test_cli_invalid_utf8_log_exit_one_no_traceback(tmp_path: Path, capsys) -> None:
+    make_wiki(tmp_path)
+    (tmp_path / "wiki" / "log.md").write_bytes(b"# Wiki Log\n\xff\xfe\n")
+    rc = main(["--root", str(tmp_path), "log"])
+    out, err = capsys.readouterr()
+    assert rc == 1
+    assert out == ""
+    assert err
+    assert "Traceback" not in err
+
+
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     make_wiki(tmp_path)
     proc = subprocess.run(

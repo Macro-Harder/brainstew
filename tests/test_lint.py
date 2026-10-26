@@ -330,3 +330,160 @@ def test_lg01_reports_all_bad_headings(tmp_path: Path) -> None:
     issues = lint(wiki)
     lg01 = [i for i in issues if i.code == "LG01"]
     assert len(lg01) == 2
+
+
+# --- FM02 field-type/value validation ---
+
+
+def test_fm02_bogus_type_list_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources").replace("type: source", "type: [bogus]"))
+    issues = lint(wiki)
+    assert "TY01" not in codes(issues)
+    fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/alpha.md"]
+    assert any("type" in i.message for i in fm02)
+
+
+def test_fm02_scalar_sources_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources").replace("sources: [raw/a.txt]", "sources: raw/a.txt"))
+    issues = lint(wiki)
+    fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/alpha.md"]
+    assert any("sources" in i.message for i in fm02)
+
+
+def test_fm02_empty_sources_list_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources").replace("sources: [raw/a.txt]", "sources: []"))
+    issues = lint(wiki)
+    fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/alpha.md"]
+    assert any("sources" in i.message for i in fm02)
+
+
+def test_fm02_sources_entry_must_be_raw_path_or_source_slug(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources").replace("sources: [raw/a.txt]", "sources: [beta]"))
+    issues = lint(wiki)
+    fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/alpha.md"]
+    assert any("sources entry" in i.message for i in fm02)
+
+
+def test_fm02_sources_source_slug_accepted(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources"))
+    write(wiki, "entities/beta.md", page("Beta", "entities").replace("sources: [raw/a.txt]", "sources: [alpha]"))
+    assert "FM02" not in codes(lint(wiki))
+
+
+def test_fm02_empty_title_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources").replace("title: Alpha", "title:   "))
+    issues = lint(wiki)
+    assert any(i.code == "FM02" and "title" in i.message for i in issues)
+
+
+def test_fm02_empty_summary_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources").replace("summary: Alpha summary", "summary:   "))
+    issues = lint(wiki)
+    assert any(i.code == "FM02" and "summary" in i.message for i in issues)
+
+
+def test_fm02_updated_non_date_shape_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources", updated="20260120"))
+    issues = lint(wiki)
+    assert any(i.code == "FM02" and i.path == "wiki/sources/alpha.md" for i in issues)
+
+
+def test_fm02_field_validation_negative(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    text = page("Alpha", "sources").replace("---\n\nBody.", "---\ntags: [a, b]\n---\n\nBody.")
+    write(wiki, "sources/alpha.md", text)
+    assert "FM02" not in codes(lint(wiki))
+
+
+# --- index.md structure ---
+
+
+def test_ix02_index_heading_wrong_order(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    text = INDEX.replace("## Synthesis\n", "## Entities\n\n## Synthesis\n")
+    write(wiki, "index.md", text)
+    issues = lint(wiki)
+    ix = [i for i in issues if i.code == "IX02" and i.path == "wiki/index.md"]
+    assert any("order" in i.message for i in ix)
+
+
+def test_ix02_index_missing_heading(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "index.md", INDEX.replace("## Concepts\n\n", ""))
+    issues = lint(wiki)
+    ix = [i for i in issues if i.code == "IX02" and i.path == "wiki/index.md"]
+    assert any("order" in i.message for i in ix)
+
+
+def test_ix02_duplicate_entry_in_index(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    text = INDEX.replace("- [[alpha]] - Alpha summary\n", "- [[alpha]] - Alpha summary\n- [[alpha]] - Alpha again\n")
+    write(wiki, "index.md", text)
+    issues = lint(wiki)
+    ix = [i for i in issues if i.code == "IX02" and i.path == "wiki/index.md"]
+    assert any("2 times" in i.message for i in ix)
+
+
+def test_ix02_index_structure_negative(tmp_path: Path) -> None:
+    assert "IX02" not in codes(lint(make_wiki(tmp_path)))
+
+
+# --- log.md heading dates ---
+
+
+def test_lg01_impossible_heading_date(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "log.md", "# Wiki Log\n\n## [2026-99-99] ingest | First\n- did a thing\n")
+    issues = lint(wiki)
+    assert "LG01" in codes(issues)
+    assert any("impossible" in i.message for i in issues if i.code == "LG01")
+
+
+def test_lg01_impossible_heading_date_negative(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "log.md", "# Wiki Log\n\n## [2026-02-28] ingest | First\n- did a thing\n")
+    assert "LG01" not in codes(lint(wiki))
+
+
+# --- invalid UTF-8 handling ---
+
+
+def test_invalid_utf8_in_page_reported(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    (wiki / "sources" / "alpha.md").write_bytes(b"---\ntitle: broken \xff\n---\n\nbody\n")
+    issues = lint(wiki)
+    utf8 = [i for i in issues if "invalid UTF-8" in i.message]
+    assert len(utf8) == 1
+    assert utf8[0].path == "wiki/sources/alpha.md"
+    assert utf8[0].severity == "ERROR"
+
+
+def test_invalid_utf8_in_index_reported(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    (wiki / "index.md").write_bytes(b"# Wiki Index\n\xff\xfe\n")
+    issues = lint(wiki)
+    assert any("invalid UTF-8" in i.message and i.path == "wiki/index.md" for i in issues)
+
+
+def test_invalid_utf8_in_log_reported(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    (wiki / "log.md").write_bytes(b"# Wiki Log\n\xff\xfe\n")
+    issues = lint(wiki)
+    assert any("invalid UTF-8" in i.message and i.path == "wiki/log.md" for i in issues)
+
+
+def test_invalid_utf8_never_raises(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    (wiki / "sources" / "alpha.md").write_bytes(b"\xff\xfe\x00")
+    (wiki / "index.md").write_bytes(b"\xff\xfe\x00")
+    (wiki / "log.md").write_bytes(b"\xff\xfe\x00")
+    issues = lint(wiki)  # must not raise
+    assert issues

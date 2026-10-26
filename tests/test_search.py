@@ -116,6 +116,36 @@ def test_cli_limit(tmp_path: Path, capsys) -> None:
     assert len(out.strip().splitlines()) == 2
 
 
+def test_cli_negative_limit_exit_two(tmp_path: Path, capsys) -> None:
+    build_wiki(tmp_path)
+    rc = main(["--root", str(tmp_path), "search", "lens", "--limit", "-1"])
+    out, err = capsys.readouterr()
+    assert rc == 2
+    assert out == ""
+    assert err
+
+
+def test_cli_negative_limit_subprocess(tmp_path: Path) -> None:
+    build_wiki(tmp_path)
+    proc = subprocess.run(
+        [sys.executable, "-m", "brainstew", "--root", str(tmp_path), "search", "lens", "--limit", "-1"],
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert proc.stderr
+
+
+def test_cli_zero_limit_exit_zero_no_output(tmp_path: Path, capsys) -> None:
+    build_wiki(tmp_path)
+    rc = main(["--root", str(tmp_path), "search", "lens", "--limit", "0"])
+    out, err = capsys.readouterr()
+    assert rc == 0
+    assert out == ""
+    assert err == ""
+
+
 def test_cli_limit_default_ten(tmp_path: Path, capsys) -> None:
     wiki = build_wiki(tmp_path)
     for i in range(12):

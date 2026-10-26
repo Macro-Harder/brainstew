@@ -1,6 +1,7 @@
 """Lint checks for the wiki."""
 
 import argparse
+import datetime
 import re
 import sys
 from collections import Counter
@@ -12,7 +13,9 @@ from brainstew.pages import LINK_RE, discover_pages
 
 REQUIRED = ("title", "type", "summary", "sources", "updated")
 FOLDER_OF = {"source": "sources", "entity": "entities", "concept": "concepts", "synthesis": "synthesis"}
-LOG_HEADING_RE = re.compile(r"## \[\d{4}-\d{2}-\d{2}\] (ingest|query|lint|edit) \| \S")
+INDEX_HEADINGS = ("Sources", "Entities", "Concepts", "Synthesis")
+LOG_HEADING_RE = re.compile(r"## \[(\d{4}-\d{2}-\d{2})\] (ingest|query|lint|edit) \| \S")
+DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 @dataclass
@@ -23,16 +26,106 @@ class Issue:
     message: str
 
 
+def _valid_date(value: str) -> bool:
+    if not DATE_RE.fullmatch(value):
+        return False
+    try:
+        datetime.date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
 def _check_page(page, issues: list[Issue]) -> None:
     rel = f"wiki/{page.folder}/{page.slug}.md"
     missing = [f for f in REQUIRED if f not in page.meta]
     if missing:
         issues.append(Issue("ERROR", "FM01", rel, f"missing fields: {', '.join(missing)}"))
+    title = page.meta.get("title")
+    if "title" in page.meta and (not isinstance(title, str) or not title.strip()):
+        issues.append(Issue("ERROR", "FM02", rel, "title must be a nonempty string"))
+    summary = page.meta.get("summary")
+    if "summary" in page.meta and (not isinstance(summary, str) or not summary.strip()):
+        issues.append(Issue("ERROR", "FM02", rel, "summary must be a nonempty string"))
     page_type = page.meta.get("type")
-    if isinstance(page_type, str) and (
-        page_type not in FOLDER_OF or FOLDER_OF[page_type] != page.folder
-    ):
+    if page_type is not None and not isinstance(page_type, str):
+        issues.append(Issue("ERROR", "FM02", rel, "type must be one of source|entity|concept|synthesis"))
+    elif isinstance(page_type, str) and page_type not in FOLDER_OF:
+        issues.append(Issue("ERROR", "FM02", rel, "type must be one of source|entity|concept|synthesis"))
+    elif isinstance(page_type, str) and FOLDER_OF[page_type] != page.folder:
         issues.append(Issue("ERROR", "TY01", rel, f"type {page_type} in folder {page.folder}"))
+    sources = page.meta.get("sources")
+    if "sources" in page.meta and (not isinstance(sources, list) or not sources):
+        issues.append(Issue("ERROR", "FM02", rel, "sources must be a nonempty list of raw/ paths or source-page slugs"))
+    updated = page.meta.get("updated")
+    if "updated" in page.meta and (not isinstance(updated, str) or not _valid_date(updated)):
+        issues.append(Issue("ERROR", "FM02", rel, "updated must be a valid YYYY-MM-DD date"))
+    tags = page.meta.get("tags")
+    if "tags" in page.meta and (not isinstance(tags, list) or not all(isinstance(t, str) for t in tags)):
+        issues.append(Issue("ERROR", "FM02", rel, "tags must be a list of strings"))
+
+
+def _check_index(wiki: Path, pages, issues: list[Issue]) -> None:
+    index = wiki / "index.md"
+    if not index.is_file():
+        issues.append(Issue("ERROR", "IX03", "wiki/index.md", "missing index.md"))
+        return
+    try:
+        text = index.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        issues.append(Issue("ERROR", "FM02", "wiki/index.md", "invalid UTF-8"))
+        return
+    page_slugs = {p.slug for p in pages}
+    order: list[str] = []
+    bullets: dict[str, list[str]] = {}
+    heading: str | None = None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            heading = line[3:].strip()
+            order.append(heading)
+            if heading not in bullets:
+                bullets[heading] = []
+        elif heading is not None and line.startswith("- "):
+            m = LINK_RE.search(line)
+            if m:
+                bullets[heading].append(m.group(1))
+    if order != list(INDEX_HEADINGS):
+        issues.append(Issue(
+            "ERROR", "IX02", "wiki/index.md",
+            f"headings must be exactly {', '.join(INDEX_HEADINGS)} in that order",
+        ))
+    listed: Counter[str] = Counter()
+    for section in bullets.values():
+        for slug in section:
+            listed[slug] += 1
+    for slug, count in listed.items():
+        if slug not in page_slugs:
+            issues.append(Issue("ERROR", "IX02", "wiki/index.md", f"unknown slug: [[{slug}]]"))
+        elif count > 1:
+            issues.append(Issue("ERROR", "IX02", "wiki/index.md", f"listed {count} times: [[{slug}]]"))
+    for page in pages:
+        if page.slug not in listed:
+            issues.append(Issue("ERROR", "IX01", f"wiki/{page.folder}/{page.slug}.md", "not listed in index.md"))
+
+
+def _check_log(wiki: Path, issues: list[Issue]) -> None:
+    log = wiki / "log.md"
+    if not log.is_file():
+        issues.append(Issue("ERROR", "LG02", "wiki/log.md", "missing log.md"))
+        return
+    try:
+        text = log.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        issues.append(Issue("ERROR", "FM02", "wiki/log.md", "invalid UTF-8"))
+        return
+    for line in text.splitlines():
+        if not line.startswith("## "):
+            continue
+        m = LOG_HEADING_RE.match(line)
+        if m is None:
+            issues.append(Issue("ERROR", "LG01", "wiki/log.md", f"bad heading: {line}"))
+        elif not _valid_date(m.group(1)):
+            issues.append(Issue("ERROR", "LG01", "wiki/log.md", f"impossible date in heading: {line}"))
 
 
 def lint(wiki: Path) -> list[Issue]:
@@ -40,17 +133,32 @@ def lint(wiki: Path) -> list[Issue]:
     pages = []
     for path, page in discover_pages(wiki):
         if page is None:
-            issues.append(Issue("ERROR", "FM02", f"wiki/{path.parent.name}/{path.name}", "invalid frontmatter"))
+            rel = f"wiki/{path.parent.name}/{path.name}"
+            try:
+                path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                issues.append(Issue("ERROR", "FM02", rel, "invalid UTF-8"))
+            else:
+                issues.append(Issue("ERROR", "FM02", rel, "invalid frontmatter"))
             continue
         pages.append(page)
         _check_page(page, issues)
 
+    source_slugs = {p.slug for p in pages if p.folder == "sources"}
     slug_counts = Counter(p.slug for p in pages)
     slugs = set(slug_counts)
     for page in pages:
         rel = f"wiki/{page.folder}/{page.slug}.md"
         if slug_counts[page.slug] > 1:
             issues.append(Issue("ERROR", "DU01", rel, f"duplicate slug: {page.slug}"))
+        sources = page.meta.get("sources")
+        if isinstance(sources, list):
+            for item in sources:
+                if not isinstance(item, str) or not (item.startswith("raw/") or item in source_slugs):
+                    issues.append(Issue(
+                        "ERROR", "FM02", rel,
+                        f"sources entry must be a raw/ path or existing source-page slug: {item}",
+                    ))
         for slug in page.links:
             if slug not in slugs:
                 issues.append(Issue("ERROR", "LK01", rel, f"broken link: [[{slug}]]"))
@@ -61,24 +169,8 @@ def lint(wiki: Path) -> list[Issue]:
         ):
             issues.append(Issue("WARN", "OR01", rel, "orphan page"))
 
-    index = wiki / "index.md"
-    if not index.is_file():
-        issues.append(Issue("ERROR", "IX03", "wiki/index.md", "missing index.md"))
-    else:
-        referenced = {m.group(1) for m in LINK_RE.finditer(index.read_text(encoding="utf-8"))}
-        for slug in sorted(referenced - slugs):
-            issues.append(Issue("ERROR", "IX02", "wiki/index.md", f"unknown slug: [[{slug}]]"))
-        for page in pages:
-            if page.slug not in referenced:
-                issues.append(Issue("ERROR", "IX01", f"wiki/{page.folder}/{page.slug}.md", "not listed in index.md"))
-
-    log = wiki / "log.md"
-    if not log.is_file():
-        issues.append(Issue("ERROR", "LG02", "wiki/log.md", "missing log.md"))
-    else:
-        for line in log.read_text(encoding="utf-8").splitlines():
-            if line.startswith("## ") and not LOG_HEADING_RE.match(line):
-                issues.append(Issue("ERROR", "LG01", "wiki/log.md", f"bad heading: {line}"))
+    _check_index(wiki, pages, issues)
+    _check_log(wiki, issues)
 
     issues.sort(key=lambda i: (i.path, i.code))
     return issues

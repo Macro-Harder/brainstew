@@ -1,8 +1,10 @@
 """Frontmatter parsing for wiki pages."""
 
 import datetime
+import re
 
 _FIELDS = {"title", "type", "summary", "sources", "updated", "tags"}
+_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 class FrontmatterError(ValueError):
@@ -10,6 +12,8 @@ class FrontmatterError(ValueError):
 
 
 def _parse_date(value: str) -> None:
+    if not _DATE_RE.fullmatch(value):
+        raise FrontmatterError(f"updated is not YYYY-MM-DD: {value}")
     try:
         datetime.date.fromisoformat(value)
     except ValueError as exc:

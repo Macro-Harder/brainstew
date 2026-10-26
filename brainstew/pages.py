@@ -31,7 +31,11 @@ def iter_page_files(wiki: Path) -> list[Path]:
 
 def load_page(path: Path) -> tuple[Path, Page | None]:
     """Read one page file; return (path, None) when frontmatter is invalid."""
-    meta, body = parse_frontmatter(path.read_text(encoding="utf-8"))
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return path, None
+    meta, body = parse_frontmatter(text)
     return path, Page(
         slug=path.stem,
         path=path,

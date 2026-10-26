@@ -8,6 +8,10 @@ from pathlib import Path
 OP_RE = re.compile(r"## \[\d{4}-\d{2}-\d{2}\] (ingest|query|lint|edit) \| ")
 
 
+class LogReadError(ValueError):
+    """Raised when log.md cannot be read."""
+
+
 def split_entries(text: str) -> list[tuple[str, list[str]]]:
     """Split log text into (heading, bullet lines) pairs."""
     entries: list[tuple[str, list[str]]] = []
@@ -27,7 +31,11 @@ def split_entries(text: str) -> list[tuple[str, list[str]]]:
 
 
 def read_log(wiki: Path) -> list[tuple[str, list[str]]]:
-    return split_entries((wiki / "log.md").read_text(encoding="utf-8"))
+    try:
+        text = (wiki / "log.md").read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise LogReadError(f"log.md is not valid UTF-8: {exc}") from exc
+    return split_entries(text)
 
 
 def render(entries: list[tuple[str, list[str]]]) -> str:
@@ -40,7 +48,11 @@ def run(args: argparse.Namespace) -> int:
     if not log.is_file():
         print(f"error: no log.md at {log}", file=sys.stderr)
         return 2
-    entries = read_log(wiki)
+    try:
+        entries = read_log(wiki)
+    except LogReadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
     if args.op:
         entries = [e for e in entries if OP_RE.match(e[0]) and OP_RE.match(e[0]).group(1) == args.op]
     if args.n > 0:
