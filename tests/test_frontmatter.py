@@ -2,7 +2,7 @@
 
 import pytest
 
-from llmwiki.frontmatter import FrontmatterError, parse_frontmatter
+from brainstew.frontmatter import FrontmatterError, parse_frontmatter
 
 BASE = (
     "---\n"

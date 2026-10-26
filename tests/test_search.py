@@ -4,8 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from llmwiki.cli import main
-from llmwiki.search import search
+from brainstew.cli import main
+from brainstew.search import search
 
 FM = (
     "---\n"
@@ -137,7 +137,7 @@ def test_cli_missing_wiki_dir(tmp_path: Path, capsys) -> None:
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     build_wiki(tmp_path)
     proc = subprocess.run(
-        [sys.executable, "-m", "llmwiki", "--root", str(tmp_path), "search", "lens", "--limit", "1"],
+        [sys.executable, "-m", "brainstew", "--root", str(tmp_path), "search", "lens", "--limit", "1"],
         capture_output=True,
         text=True,
     )

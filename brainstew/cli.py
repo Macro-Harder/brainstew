@@ -1,14 +1,14 @@
-"""Command-line interface for llmwiki."""
+"""Command-line interface for brainstew."""
 
 import argparse
 import sys
 
-USAGE = "usage: python -m llmwiki [--root PATH] {lint,search,log} ..."
+USAGE = "usage: python -m brainstew [--root PATH] {lint,search,log} ..."
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m llmwiki",
+        prog="python -m brainstew",
         description="Lint, search and log a small LLM-maintained wiki.",
     )
     parser.add_argument("--root", default=".", help="wiki root (default: current dir)")
@@ -40,12 +40,12 @@ def main(argv: list[str] | None = None) -> int:
     if getattr(args, "root", None) is None:
         args.root = "."
     if args.command == "lint":
-        from llmwiki.lint import run
+        from brainstew.lint import run
         return run(args)
     if args.command == "search":
-        from llmwiki.search import run
+        from brainstew.search import run
         return run(args)
-    from llmwiki.log import run
+    from brainstew.log import run
     return run(args)
 
 

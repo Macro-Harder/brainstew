@@ -8,8 +8,8 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from llmwiki.frontmatter import FrontmatterError
-from llmwiki.pages import LINK_RE, discover_pages
+from brainstew.frontmatter import FrontmatterError
+from brainstew.pages import LINK_RE, discover_pages
 
 REQUIRED = ("title", "type", "summary", "sources", "updated")
 FOLDER_OF = {"source": "sources", "entity": "entities", "concept": "concepts", "synthesis": "synthesis"}

@@ -11,10 +11,10 @@ requires-python = ">=3.10"
 license = { text = "MIT" }
 
 [project.scripts]
-wiki = "llmwiki.cli:main"
+wiki = "brainstew.cli:main"
 
 [tool.setuptools]
-packages = ["llmwiki"]
+packages = ["brainstew"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

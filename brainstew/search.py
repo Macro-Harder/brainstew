@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from llmwiki.pages import Page, discover_pages
+from brainstew.pages import Page, discover_pages
 
 WEIGHTS = (("title", 10), ("summary", 5), ("body", 1))
 

@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from llmwiki.frontmatter import parse_frontmatter
+from brainstew.frontmatter import parse_frontmatter
 
 PAGE_DIRS = ("sources", "entities", "concepts", "synthesis")
 LINK_RE = re.compile(r"\[\[([^\]]+)\]\]")

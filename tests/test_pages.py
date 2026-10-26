@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from llmwiki.pages import discover_pages
+from brainstew.pages import discover_pages
 
 FM = "---\ntitle: {title}\ntype: {type}\nsummary: {summary}\nsources: [raw/a.txt]\nupdated: 2026-01-20\n---\n\n{body}\n"
 

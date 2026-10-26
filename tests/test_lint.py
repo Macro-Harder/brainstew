@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from llmwiki.lint import Issue, lint
+from brainstew.lint import Issue, lint
 
 FM = (
     "---\n"
@@ -232,7 +232,7 @@ def test_issues_sorted_by_path_then_code(tmp_path: Path) -> None:
 
 
 def test_run_missing_wiki_dir(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    from llmwiki.cli import main
+    from brainstew.cli import main
 
     rc = main(["--root", str(tmp_path), "lint"])
     out, err = capsys.readouterr()
@@ -242,7 +242,7 @@ def test_run_missing_wiki_dir(tmp_path: Path, capsys: pytest.CaptureFixture[str]
 
 def test_cli_clean_exit_zero(tmp_path: Path) -> None:
     proc = subprocess.run(
-        [sys.executable, "-m", "llmwiki", "--root", str(make_wiki(tmp_path).parent), "lint"],
+        [sys.executable, "-m", "brainstew", "--root", str(make_wiki(tmp_path).parent), "lint"],
         capture_output=True,
         text=True,
     )
@@ -255,7 +255,7 @@ def test_cli_output_line_format(tmp_path: Path) -> None:
     wiki = make_wiki(tmp_path)
     write(wiki, "entities/beta.md", page("Beta", "entities"))
     proc = subprocess.run(
-        [sys.executable, "-m", "llmwiki", "--root", str(wiki.parent), "lint"],
+        [sys.executable, "-m", "brainstew", "--root", str(wiki.parent), "lint"],
         capture_output=True,
         text=True,
     )
@@ -270,7 +270,7 @@ def test_cli_strict_promotes_warning_to_error(tmp_path: Path) -> None:
     wiki = make_wiki(tmp_path)
     write(wiki, "entities/beta.md", page("Beta", "entities"))
     proc = subprocess.run(
-        [sys.executable, "-m", "llmwiki", "--root", str(wiki.parent), "lint", "--strict"],
+        [sys.executable, "-m", "brainstew", "--root", str(wiki.parent), "lint", "--strict"],
         capture_output=True,
         text=True,
     )
@@ -281,7 +281,7 @@ def test_cli_strict_promotes_warning_to_error(tmp_path: Path) -> None:
 
 def test_cli_missing_wiki_dir_exit_two(tmp_path: Path) -> None:
     proc = subprocess.run(
-        [sys.executable, "-m", "llmwiki", "--root", str(tmp_path), "lint"],
+        [sys.executable, "-m", "brainstew", "--root", str(tmp_path), "lint"],
         capture_output=True,
         text=True,
     )
@@ -291,7 +291,7 @@ def test_cli_missing_wiki_dir_exit_two(tmp_path: Path) -> None:
 
 def test_cli_root_after_subcommand(tmp_path: Path) -> None:
     proc = subprocess.run(
-        [sys.executable, "-m", "llmwiki", "lint", "--root", str(make_wiki(tmp_path).parent)],
+        [sys.executable, "-m", "brainstew", "lint", "--root", str(make_wiki(tmp_path).parent)],
         capture_output=True,
         text=True,
     )
@@ -357,7 +357,7 @@ def test_end_to_end_example_wiki(tmp_path: Path) -> None:
         "- Updated index.md\n"
     ))
     proc = subprocess.run(
-        [sys.executable, "-m", "llmwiki", "--root", str(root), "lint"],
+        [sys.executable, "-m", "brainstew", "--root", str(root), "lint"],
         capture_output=True,
         text=True,
     )
