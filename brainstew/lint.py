@@ -220,7 +220,14 @@ def lint(wiki: Path) -> list[Issue]:
 
 
 def run(args: argparse.Namespace) -> int:
-    wiki = Path(args.root) / "wiki"
+    root = Path(args.root)
+    prefix = Path(root.anchor) if root.is_absolute() else Path()
+    for part in root.parts[1:] if root.is_absolute() else root.parts:
+        prefix = prefix / part
+        if prefix.is_symlink():
+            print(f"error: {prefix} is a symlink; refusing to read", file=sys.stderr)
+            return 2
+    wiki = root / "wiki"
     if wiki.is_symlink():
         print(f"error: {wiki} is a symlink; refusing to read", file=sys.stderr)
         return 2

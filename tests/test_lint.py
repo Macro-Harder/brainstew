@@ -307,6 +307,20 @@ def test_cli_root_after_subcommand(tmp_path: Path) -> None:
     assert proc.stdout == "lint: 0 errors, 0 warnings\n"
 
 
+def test_finding_f3_symlinked_root_rejected(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from brainstew.cli import main
+
+    real_root = tmp_path / "real"
+    real_root.mkdir()
+    make_wiki(real_root)
+    link = tmp_path / "link"
+    link.symlink_to(real_root)
+    rc = main(["--root", str(link), "lint"])
+    out, err = capsys.readouterr()
+    assert rc == 2
+    assert err
+
+
 def test_cli_prog_and_description_match_spec() -> None:
     import brainstew.cli as cli
 
