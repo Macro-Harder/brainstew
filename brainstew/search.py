@@ -70,5 +70,5 @@ def run(args: argparse.Namespace) -> int:
         summary = page.meta.get("summary", "")
         if isinstance(summary, str):
             summary = _escape(summary)
-        print(f"{_escape(page.slug)}\t{page.meta.get('type', '')}\t{summary}")
+        print(f"{_escape(page.slug)}\t{_escape(page.meta.get('type', ''))}\t{summary}")
     return 0

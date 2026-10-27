@@ -250,6 +250,36 @@ def test_finding_f8_search_escapes_control_chars_in_slug(tmp_path: Path, capsys)
     assert "ev\\x1bil\tsource\tlens summary." in out
 
 
+def test_finding_f8_search_escapes_control_chars_in_type(tmp_path: Path, capsys, monkeypatch) -> None:
+    # The frontmatter parser rejects '[' in scalar values, so a real page file
+    # cannot carry an escape like \x1b[31m in type; inject the page directly.
+    from brainstew import search as search_mod
+    from brainstew.pages import Page
+
+    wiki = tmp_path / "wiki"
+    wiki.mkdir()
+    page = Page(
+        slug="evil2",
+        path=wiki / "sources" / "evil2.md",
+        folder="sources",
+        meta={
+            "title": "Evil Lens 2",
+            "type": "sour\x1b[31mce",
+            "summary": "A lens summary.",
+            "sources": ["raw/a.txt"],
+            "updated": "2026-01-20",
+        },
+        body="lens body.",
+    )
+    monkeypatch.setattr(search_mod, "discover_pages", lambda w: [(page.path, page)])
+    rc = main(["--root", str(tmp_path), "search", "lens"])
+    out, _ = capsys.readouterr()
+    assert rc == 0
+    assert "\x1b" not in out
+    assert "\\x1b" in out
+    assert "evil2\tsour\\x1b[31mce\t" in out
+
+
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     build_wiki(tmp_path)
     proc = subprocess.run(
