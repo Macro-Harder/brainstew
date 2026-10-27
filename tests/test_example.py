@@ -1,5 +1,6 @@
 """End-to-end test: the shipped example wiki lints clean."""
 
+import re
 import shutil
 import subprocess
 import sys
@@ -16,6 +17,12 @@ EXAMPLE_FILES = [
     "wiki/concepts/fresnel-lens-optics.md",
     "wiki/concepts/lighthouse-illumination.md",
 ]
+
+
+def test_finding_f17_search_invocation_shows_query_argument() -> None:
+    skill = Path(__file__).resolve().parent.parent / ".agents" / "skills" / "wiki-query" / "SKILL.md"
+    text = skill.read_text(encoding="utf-8")
+    assert re.search(r"brainstew search\s+\S+", text), text
 
 
 def test_example_lints_clean(tmp_path: Path) -> None:
