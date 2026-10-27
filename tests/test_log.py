@@ -225,6 +225,40 @@ def test_finding_f9_control_chars_escaped_in_output(tmp_path: Path, capsys) -> N
     assert "\\x07" in out
 
 
+def test_finding_f13_split_entries_rejects_malformed_heading() -> None:
+    with pytest.raises(LogReadError):
+        split_entries("## Just Some Heading\n- bullet\n")
+
+
+def test_finding_f13_split_entries_rejects_impossible_date() -> None:
+    with pytest.raises(LogReadError):
+        split_entries("## [2026-13-40] ingest | Nope\n- bullet\n")
+    with pytest.raises(LogReadError):
+        split_entries("## [2025-02-29] lint | Not a leap year\n- bullet\n")
+
+
+def test_finding_f13_cli_reports_malformed_log(tmp_path: Path, capsys) -> None:
+    make_wiki(tmp_path, "# Wiki Log\n\n## Not a log entry\n- stray bullet\n")
+    rc = main(["--root", str(tmp_path), "log"])
+    out, err = capsys.readouterr()
+    assert rc == 1
+    assert out == ""
+    assert err
+    assert "Traceback" not in err
+    assert "log.md" in err
+
+
+def test_finding_f13_cli_reports_impossible_date_log(tmp_path: Path, capsys) -> None:
+    make_wiki(tmp_path, "# Wiki Log\n\n## [2026-99-01] ingest | Bad Date\n- bullet\n")
+    rc = main(["--root", str(tmp_path), "log"])
+    out, err = capsys.readouterr()
+    assert rc == 1
+    assert out == ""
+    assert err
+    assert "Traceback" not in err
+    assert "log.md" in err
+
+
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     make_wiki(tmp_path)
     proc = subprocess.run(

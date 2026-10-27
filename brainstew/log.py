@@ -1,15 +1,25 @@
 """Show entries from the wiki log."""
 
 import argparse
+import datetime
 import re
 import sys
 from pathlib import Path
 
 OP_RE = re.compile(r"## \[\d{4}-\d{2}-\d{2}\] (ingest|query|lint|edit) \| ")
+HEADING_RE = re.compile(r"## \[(\d{4}-\d{2}-\d{2})\] (ingest|query|lint|edit) \| \S")
 
 
 class LogReadError(ValueError):
-    """Raised when log.md cannot be read."""
+    """Raised when log.md cannot be read or contains malformed entries."""
+
+
+def _valid_date(value: str) -> bool:
+    try:
+        datetime.date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
 
 
 def split_entries(text: str) -> list[tuple[str, list[str]]]:
@@ -21,6 +31,11 @@ def split_entries(text: str) -> list[tuple[str, list[str]]]:
         if line.startswith("## "):
             if heading is not None:
                 entries.append((heading, bullets))
+            match = HEADING_RE.match(line)
+            if match is None:
+                raise LogReadError(f"log.md has a malformed heading: {line}")
+            if not _valid_date(match.group(1)):
+                raise LogReadError(f"log.md has an impossible date in heading: {line}")
             heading = line
             bullets = []
         elif line.startswith("- ") and heading is not None:
