@@ -169,6 +169,33 @@ def test_finding_f1_cli_rejects_symlinked_wiki_dir(tmp_path: Path, capsys) -> No
     assert "symlink" in err
 
 
+def test_finding_f4_cli_rejects_symlinked_root(tmp_path: Path, capsys) -> None:
+    real = tmp_path / "real"
+    build_wiki(real)
+    root = tmp_path / "root"
+    root.symlink_to(real, target_is_directory=True)
+    rc = main(["--root", str(root), "search", "lens"])
+    out, err = capsys.readouterr()
+    assert rc == 2
+    assert out == ""
+    assert "symlink" in err
+
+
+def test_finding_f4_cli_rejects_root_with_symlinked_parent(tmp_path: Path, capsys) -> None:
+    build_wiki(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    link = tmp_path / "link"
+    link.symlink_to(outside, target_is_directory=True)
+    root = link / "root"
+    root.mkdir()
+    rc = main(["--root", str(root), "search", "lens"])
+    out, err = capsys.readouterr()
+    assert rc == 2
+    assert out == ""
+    assert "symlink" in err
+
+
 def test_cli_missing_wiki_dir(tmp_path: Path, capsys) -> None:
     rc = main(["--root", str(tmp_path), "search", "lens"])
     out, err = capsys.readouterr()
