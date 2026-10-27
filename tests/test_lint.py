@@ -499,6 +499,17 @@ def test_fm02_sources_raw_path_check_is_platform_independent(tmp_path: Path) -> 
     assert _norm_posix(str(PurePosixPath("raw/../raw/a.txt"))) == "raw/a.txt"
 
 
+def test_finding_f10_sources_raw_path_with_backslashes_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    text = page("Alpha", "sources").replace(
+        "sources: [raw/a.txt]", "sources: [raw/foo\\..\\..\\..\\outside.txt]"
+    )
+    write(wiki, "sources/alpha.md", text)
+    issues = lint(wiki)
+    fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/alpha.md"]
+    assert any("sources entry" in i.message for i in fm02)
+
+
 # --- index.md structure ---
 
 

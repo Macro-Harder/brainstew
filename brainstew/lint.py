@@ -29,7 +29,7 @@ class Issue:
 
 def _norm_posix(path: str) -> str:
     """Normalize a documented source path with POSIX rules, on any platform."""
-    return posixpath.normpath(path)
+    return posixpath.normpath(path.replace("\\", "/"))
 
 
 def _valid_date(value: str) -> bool:
