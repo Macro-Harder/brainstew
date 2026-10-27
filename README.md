@@ -1,8 +1,10 @@
 # brainstew
 
-A starter kit for an LLM-maintained markdown wiki, built for coding agents like AgenC.
+brainstew is built for [AgenC](https://github.com/tetsuo-ai/agenc-core).
 
-brainstew implements the LLM Wiki pattern: an agent reads raw source material, distills it into a structured set of linked markdown pages, and keeps that wiki up to date as it works. The wiki becomes a persistent, searchable knowledge base that the agent itself maintains over time, with an index and a log that record what was added and why.
+A starter kit for an AgenC-maintained markdown wiki.
+
+brainstew implements the LLM Wiki pattern: AgenC reads raw source material, distills it into a structured set of linked markdown pages, and keeps that wiki up to date as it works. The wiki becomes a persistent, searchable knowledge base that AgenC itself maintains over time, with an index and a log that record what was added and why.
 
 Based on the LLM Wiki idea by Andrej Karpathy (https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
 
@@ -20,23 +22,23 @@ python -m brainstew log
 
 The repository ships with a small example wiki (about the Fresnel lens) so every command works out of the box on a fresh clone. After `pip install -e .` the `wiki` command works too, e.g. `wiki lint`.
 
-To grow the wiki, drop a new file into `raw/` and ask your agent to run the wiki-ingest skill on it.
+To grow the wiki, drop a new file into `raw/` and ask AgenC to run the wiki-ingest skill on it.
 
-## Using it with an agent
+## Using it with AgenC
 
-The project is designed for AgenC (or any coding agent that reads AGENTS.md and `.agents/skills/`). For example, you can prompt:
+The project is designed for AgenC, which reads AGENTS.md and `.agents/skills/`. For example, you can prompt:
 
 > Ingest raw/my-article.md using the wiki-ingest skill.
 
-The agent reads AGENTS.md for the ground rules, runs the skill's workflow, and leaves the wiki lint-clean. The other two skills cover answering questions from the wiki (wiki-query) and repairing lint issues (wiki-lint).
+AgenC reads AGENTS.md for the ground rules, runs the skill's workflow, and leaves the wiki lint-clean. The other two skills cover answering questions from the wiki (wiki-query) and repairing lint issues (wiki-lint).
 
 ## How it works
 
 There are three layers:
 
-- `raw/` — immutable source material. Read only; the agent never writes here.
-- `wiki/` — the agent-owned knowledge base: source summaries, entity pages, concept pages, and synthesis pages, all connected with `[[slug]]` links.
-- `schema` — AGENTS.md and the `.agents/skills/*/SKILL.md` files that tell the agent how to operate.
+- `raw/` — immutable source material. Read only; AgenC never writes here.
+- `wiki/` — AgenC-owned knowledge base: source summaries, entity pages, concept pages, and synthesis pages, all connected with `[[slug]]` links.
+- `schema` — AGENTS.md and the `.agents/skills/*/SKILL.md` files that tell AgenC how to operate.
 
 Three operations drive the wiki:
 
