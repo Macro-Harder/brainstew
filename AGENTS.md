@@ -25,7 +25,7 @@
 8. Run `python -m brainstew lint` and fix any issues.
 
 ### Query
-1. Run `python -m brainstew search` or read index.md to locate relevant pages.
+1. Run `python -m brainstew search <query>` or read index.md to locate relevant pages.
 2. Read the full content of selected pages.
 3. Synthesize an answer that includes [[citations]].
 4. If the synthesis is durable, write it as a new page in wiki/synthesis/.

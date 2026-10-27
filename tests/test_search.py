@@ -105,6 +105,14 @@ def test_finding_f14_discovery_error_is_surfaced_on_stderr(tmp_path: Path, monke
     assert rc == 1
 
 
+def test_finding_f16_agents_md_search_documents_query_argument() -> None:
+    agents_md = Path(__file__).resolve().parent.parent / "AGENTS.md"
+    text = agents_md.read_text(encoding="utf-8")
+    assert "python -m brainstew search <query>" in text, (
+        "AGENTS.md search command must show the required positional query argument"
+    )
+
+
 def test_cli_hit_exit_zero(tmp_path: Path, capsys) -> None:
     build_wiki(tmp_path)
     rc = main(["--root", str(tmp_path), "search", "lens"])
