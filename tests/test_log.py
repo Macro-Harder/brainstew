@@ -210,6 +210,21 @@ def test_finding_f5_symlinked_root_rejected(tmp_path: Path, capsys) -> None:
     assert "Secret" not in out
 
 
+def test_finding_f9_control_chars_escaped_in_output(tmp_path: Path, capsys) -> None:
+    text = (
+        "## [2026-01-22] ingest | \x1b[31mEvil Heading\x1b[0m\n"
+        "- bullet with \x07 bell and \t tab\n"
+    )
+    make_wiki(tmp_path, text)
+    rc = main(["--root", str(tmp_path), "log"])
+    out, _ = capsys.readouterr()
+    assert rc == 0
+    assert "\x1b" not in out
+    assert "\x07" not in out
+    assert "\\x1b" in out
+    assert "\\x07" in out
+
+
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     make_wiki(tmp_path)
     proc = subprocess.run(

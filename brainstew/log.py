@@ -40,8 +40,16 @@ def read_log(wiki: Path) -> list[tuple[str, list[str]]]:
     return split_entries(text)
 
 
+_CTRL_RE = re.compile(r"[\x00-\x09\x0b-\x1f\x7f\x80-\x9f]")
+
+
+def _escape_ctrl(match: re.Match[str]) -> str:
+    return "".join(f"\\x{ord(ch):02x}" for ch in match.group())
+
+
 def render(entries: list[tuple[str, list[str]]]) -> str:
-    return "\n\n".join("\n".join([h, *b]) for h, b in entries)
+    text = "\n\n".join("\n".join([h, *b]) for h, b in entries)
+    return _CTRL_RE.sub(_escape_ctrl, text)
 
 
 def run(args: argparse.Namespace) -> int:
