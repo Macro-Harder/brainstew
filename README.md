@@ -110,11 +110,6 @@ options:
 
 Exit codes: 0 on success, 1 for a command-specific failure (lint errors, no search hits), 2 for usage errors or a missing wiki directory.
 
-## Known issues
-- F57: 16 failing tests in tests/test_lint.py, caused by the F21 lint change that requires every `sources` entry under raw/ to exist on disk.
-- F56: one failing fixture test in tests/test_pages.py (test_symlinked_non_page_dir_still_lints_clean builds pages citing raw/a.txt without creating that file).
-- The final full pytest run was not run, so the suite state is unverified.
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
