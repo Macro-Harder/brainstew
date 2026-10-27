@@ -198,6 +198,25 @@ def test_symlinked_non_page_dir_still_lints_clean(tmp_path: Path) -> None:
     assert lint(wiki) == []
 
 
+def test_finding_f6_symlinked_category_dir_reported(tmp_path: Path) -> None:
+    from brainstew.lint import lint
+
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "real.md", make_page("Real", "sources"))
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "leaked.md").write_text(make_page("Leaked", "concepts"), encoding="utf-8")
+    (wiki / "concepts").symlink_to(outside)
+    (wiki / "index.md").write_text("# Wiki Index\n", encoding="utf-8")
+    (wiki / "log.md").write_text("# Wiki Log\n", encoding="utf-8")
+    pages = discover_pages(wiki)
+    paths = [p for p, _ in pages]
+    assert wiki / "concepts" in paths
+    assert all(p.name != "leaked.md" for p in paths)
+    issues = lint(wiki)
+    assert any("concepts" in i.message for i in issues)
+
+
 def test_unreadable_page_reports_path_with_none(tmp_path: Path, monkeypatch) -> None:
     from pathlib import Path as _P
 
