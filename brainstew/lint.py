@@ -252,7 +252,7 @@ def run(args: argparse.Namespace) -> int:
         print(f"error: {_esc(str(wiki))} is a symlink; refusing to read", file=sys.stderr)
         return 2
     if not wiki.is_dir():
-        print(f"error: no wiki dir at {wiki}", file=sys.stderr)
+        print(f"error: no wiki dir at {_esc(str(wiki))}", file=sys.stderr)
         return 2
     issues = lint(wiki)
     if args.strict:

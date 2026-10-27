@@ -283,6 +283,19 @@ def test_run_missing_wiki_dir(tmp_path: Path, capsys: pytest.CaptureFixture[str]
     assert err
 
 
+def test_finding_f26_missing_wiki_dir_escapes_control_chars(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from brainstew.cli import main
+
+    root = tmp_path / "bad\x1b[31mroot"
+    root.mkdir()
+    rc = main(["--root", str(root), "lint"])
+    out, err = capsys.readouterr()
+    assert rc == 2
+    assert err
+    assert "\x1b" not in err
+    assert "\\x1b" in err
+
+
 def test_cli_clean_exit_zero(tmp_path: Path) -> None:
     proc = subprocess.run(
         [sys.executable, "-m", "brainstew", "--root", str(make_wiki(tmp_path).parent), "lint"],
