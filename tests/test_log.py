@@ -302,6 +302,24 @@ def test_finding_f23_cli_reports_prose_before_heading(tmp_path: Path, capsys) ->
     assert "Traceback" not in err
 
 
+def test_finding_f25_inaccessible_wiki_dir_handled_cleanly(
+    tmp_path: Path, capsys
+) -> None:
+    wiki = make_wiki(tmp_path)
+    if os.geteuid() == 0:
+        pytest.skip("root ignores file permissions")
+    os.chmod(wiki, 0)
+    try:
+        rc = main(["--root", str(tmp_path), "log"])
+    finally:
+        os.chmod(wiki, 0o755)
+    out, err = capsys.readouterr()
+    assert rc == 2
+    assert out == ""
+    assert err
+    assert "Traceback" not in err
+
+
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     make_wiki(tmp_path)
     proc = subprocess.run(
