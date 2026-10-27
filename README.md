@@ -26,7 +26,7 @@ To grow the wiki, drop a new file into `raw/` and ask AgenC to run the wiki-inge
 
 ## Using it with AgenC
 
-The project is designed for AgenC, which reads AGENTS.md and `.agents/skills/`. For example, you can prompt:
+The project is designed for AgenC. For example, you can prompt:
 
 > Ingest raw/my-article.md using the wiki-ingest skill.
 
