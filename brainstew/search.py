@@ -55,5 +55,11 @@ def run(args: argparse.Namespace) -> int:
     if not results:
         return 1
     for page, _ in results[: args.limit]:
-        print(f"{page.slug}\t{page.meta.get('type', '')}\t{page.meta.get('summary', '')}")
+        summary = page.meta.get("summary", "")
+        if isinstance(summary, str):
+            summary = "".join(
+                ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii")
+                for ch in summary
+            )
+        print(f"{page.slug}\t{page.meta.get('type', '')}\t{summary}")
     return 0

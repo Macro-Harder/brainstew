@@ -204,6 +204,17 @@ def test_cli_missing_wiki_dir(tmp_path: Path, capsys) -> None:
     assert "no wiki dir" in err
 
 
+def test_finding_f8_search_escapes_control_chars_in_summary(tmp_path: Path, capsys) -> None:
+    wiki = build_wiki(tmp_path)
+    write(wiki, "sources/evil.md", make_page("Evil Lens", "sources", "Bad \x1bc lens.", "lens body."))
+    rc = main(["--root", str(tmp_path), "search", "lens"])
+    out, _ = capsys.readouterr()
+    assert rc == 0
+    assert "\x1b" not in out
+    assert "\\x1b" in out
+    assert "evil\tsource\t" in out
+
+
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     build_wiki(tmp_path)
     proc = subprocess.run(
