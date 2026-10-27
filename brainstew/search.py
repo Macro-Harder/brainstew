@@ -44,6 +44,13 @@ def search(wiki: Path, query: str) -> list[tuple[Page, int]]:
     return scored
 
 
+def _escape(text: str) -> str:
+    return "".join(
+        ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii")
+        for ch in text
+    )
+
+
 def run(args: argparse.Namespace) -> int:
     if args.limit < 0:
         print(f"error: --limit must be >= 0, got {args.limit}", file=sys.stderr)
@@ -62,9 +69,6 @@ def run(args: argparse.Namespace) -> int:
     for page, _ in results[: args.limit]:
         summary = page.meta.get("summary", "")
         if isinstance(summary, str):
-            summary = "".join(
-                ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii")
-                for ch in summary
-            )
-        print(f"{page.slug}\t{page.meta.get('type', '')}\t{summary}")
+            summary = _escape(summary)
+        print(f"{_escape(page.slug)}\t{page.meta.get('type', '')}\t{summary}")
     return 0
