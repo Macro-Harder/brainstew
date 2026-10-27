@@ -45,7 +45,14 @@ def render(entries: list[tuple[str, list[str]]]) -> str:
 
 
 def run(args: argparse.Namespace) -> int:
-    wiki = Path(args.root) / "wiki"
+    root = Path(args.root).absolute()
+    current = Path(root.anchor)
+    for part in root.parts[1:]:
+        current = current / part
+        if current.is_symlink():
+            print(f"error: {current} is a symlink; refusing to read", file=sys.stderr)
+            return 2
+    wiki = root / "wiki"
     if wiki.is_symlink():
         print(f"error: {wiki} is a symlink; refusing to read", file=sys.stderr)
         return 2

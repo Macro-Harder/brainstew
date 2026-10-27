@@ -191,6 +191,25 @@ def test_cli_unreadable_log_subprocess_no_traceback(tmp_path: Path) -> None:
     assert "Traceback" not in proc.stderr
 
 
+def test_finding_f5_symlinked_root_rejected(tmp_path: Path, capsys) -> None:
+    real = tmp_path / "real"
+    real.mkdir()
+    real_wiki = real / "wiki"
+    real_wiki.mkdir()
+    (real_wiki / "log.md").write_text(
+        "## [2026-01-01] ingest | Secret\n- content outside the supplied root\n",
+        encoding="utf-8",
+    )
+    link = tmp_path / "link"
+    link.symlink_to(real)
+    rc = main(["--root", str(link), "log"])
+    out, err = capsys.readouterr()
+    assert rc == 2
+    assert out == ""
+    assert "symlink" in err
+    assert "Secret" not in out
+
+
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     make_wiki(tmp_path)
     proc = subprocess.run(
