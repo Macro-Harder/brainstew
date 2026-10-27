@@ -191,6 +191,8 @@ def test_symlinked_non_page_dir_still_lints_clean(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     (wiki / "log.md").write_text("# Wiki Log\n", encoding="utf-8")
+    (tmp_path / "raw").mkdir(exist_ok=True)
+    (tmp_path / "raw" / "a.txt").write_text("content", encoding="utf-8")
     assets = tmp_path / "assets"
     assets.mkdir()
     (assets / "pic.png").write_text("", encoding="utf-8")

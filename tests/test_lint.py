@@ -57,6 +57,8 @@ def make_wiki(tmp_path: Path) -> Path:
     write(wiki, "entities/beta.md", page("Beta", "entities", "See [[alpha]]."))
     write(wiki, "index.md", INDEX)
     write(wiki, "log.md", LOG)
+    (wiki.parent / "raw").mkdir(exist_ok=True)
+    write(wiki.parent, "raw/a.txt", "content")
     return wiki
 
 
@@ -71,13 +73,12 @@ def test_clean_wiki(tmp_path: Path) -> None:
 def test_finding_f21_nonexistent_raw_path_rejected(tmp_path: Path) -> None:
     wiki = make_wiki(tmp_path)
     write(wiki, "sources/alpha.md", page("Alpha", "sources").replace("sources: [raw/a.txt]", "sources: [raw/missing.txt]"))
-    (wiki.parent / "raw").mkdir()
+    (wiki.parent / "raw").mkdir(exist_ok=True)
     assert "FM02" in codes(lint(wiki))
 
 
 def test_finding_f21_negative_existing_raw_path_accepted(tmp_path: Path) -> None:
     wiki = make_wiki(tmp_path)
-    write(wiki.parent, "raw/a.txt", "content")
     assert lint(wiki) == []
 
 
@@ -470,6 +471,8 @@ def test_fm02_sources_raw_path_escape_rejected(tmp_path: Path) -> None:
     wiki = make_wiki(tmp_path)
     text = page("Alpha", "sources").replace("sources: [raw/a.txt]", "sources: [raw/../../outside.txt]")
     write(wiki, "sources/alpha.md", text)
+    (wiki.parent / "raw").mkdir(exist_ok=True)
+    write(wiki.parent, "raw/a.txt", "content")
     issues = lint(wiki)
     fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/alpha.md"]
     assert any("sources entry" in i.message for i in fm02)
@@ -487,6 +490,10 @@ def test_fm02_sources_raw_path_negative(tmp_path: Path) -> None:
     wiki = make_wiki(tmp_path)
     text = page("Alpha", "sources").replace("sources: [raw/a.txt]", "sources: [raw/foo.txt, raw/sub/b.txt]")
     write(wiki, "sources/alpha.md", text)
+    (wiki.parent / "raw").mkdir(exist_ok=True)
+    write(wiki.parent, "raw/a.txt", "content")
+    write(wiki.parent, "raw/foo.txt", "content")
+    write(wiki.parent, "raw/sub/b.txt", "content")
     issues = lint(wiki)
     assert "FM02" not in codes(issues)
 
@@ -495,6 +502,8 @@ def test_fm02_sources_raw_path_check_is_platform_independent(tmp_path: Path) -> 
     wiki = make_wiki(tmp_path)
     write(wiki, "sources/alpha.md", page("Alpha", "sources", "See [[beta]]."))
     write(wiki, "entities/beta.md", page("Beta", "entities"))
+    (wiki.parent / "raw").mkdir(exist_ok=True)
+    write(wiki.parent, "raw/a.txt", "content")
     assert "FM02" not in codes(lint(wiki))
     # The check must behave like posixpath even when the platform would use
     # ntpath (on Windows os.path.normpath("raw/a.txt") gives "raw\a.txt").
