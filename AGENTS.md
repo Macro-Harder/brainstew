@@ -1,8 +1,8 @@
-# LLM Wiki Agent Instructions
+# brainstew instructions for AgenC
 
 ## Layers
 - raw/: immutable sources. Read only. Never create, edit, or delete files here.
-- wiki/: agent-owned. All creation and editing happens here.
+- wiki/: AgenC-owned. All creation and editing happens here.
 - schema: AGENTS.md and .agents/skills/*/SKILL.md files.
 
 ## Rules

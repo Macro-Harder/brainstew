@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "brainstew"
 version = "0.1.0"
-description = "An LLM-maintained markdown wiki starter (LLM Wiki pattern)"
+description = "A markdown wiki starter built for AgenC (LLM Wiki pattern)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

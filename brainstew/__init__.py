@@ -1,4 +1,4 @@
-"""brainstew: a minimal LLM Wiki starter driven by coding agents."""
+"""brainstew: a minimal LLM Wiki starter built for AgenC."""
 
 from brainstew.frontmatter import FrontmatterError, parse_frontmatter
 from brainstew.pages import Page, discover_pages
