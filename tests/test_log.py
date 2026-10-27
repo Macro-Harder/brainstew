@@ -268,6 +268,40 @@ def test_finding_f13_cli_reports_impossible_date_log(tmp_path: Path, capsys) -> 
     assert "log.md" in err
 
 
+def test_finding_f23_prose_before_heading_rejected(tmp_path: Path, capsys) -> None:
+    with pytest.raises(LogReadError):
+        split_entries("# Wiki Log\n\nlorem ipsum prose without a heading\n")
+    make_wiki(tmp_path, "# Wiki Log\n\nlorem ipsum prose without a heading\n")
+    rc = main(["--root", str(tmp_path), "log"])
+    out, err = capsys.readouterr()
+    assert rc == 1
+    assert out == ""
+    assert err
+    assert "Traceback" not in err
+
+
+def test_finding_f23_stray_bullet_before_heading_rejected(tmp_path: Path, capsys) -> None:
+    with pytest.raises(LogReadError):
+        split_entries("# Wiki Log\n\n- stray bullet with no heading\n")
+    make_wiki(tmp_path, "# Wiki Log\n\n- stray bullet with no heading\n")
+    rc = main(["--root", str(tmp_path), "log"])
+    out, err = capsys.readouterr()
+    assert rc == 1
+    assert out == ""
+    assert err
+    assert "Traceback" not in err
+
+
+def test_finding_f23_cli_reports_prose_before_heading(tmp_path: Path, capsys) -> None:
+    make_wiki(tmp_path, "# Wiki Log\n\nsome prose\n\n## [2026-01-22] lint | Fine Entry\n- ok\n")
+    rc = main(["--root", str(tmp_path), "log"])
+    out, err = capsys.readouterr()
+    assert rc == 1
+    assert out == ""
+    assert err
+    assert "Traceback" not in err
+
+
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     make_wiki(tmp_path)
     proc = subprocess.run(

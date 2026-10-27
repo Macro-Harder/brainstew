@@ -38,6 +38,10 @@ def split_entries(text: str) -> list[tuple[str, list[str]]]:
                 raise LogReadError(f"log.md has an impossible date in heading: {line}")
             heading = line
             bullets = []
+        elif heading is None and line.strip():
+            raise LogReadError(
+                f"log.md has content outside a log entry: {line}"
+            )
         elif line.startswith("- ") and heading is not None:
             bullets.append(line)
     if heading is not None:
