@@ -2,7 +2,7 @@
 
 import argparse
 import datetime
-import os
+import posixpath
 import re
 import sys
 from collections import Counter
@@ -25,6 +25,11 @@ class Issue:
     code: str
     path: str
     message: str
+
+
+def _norm_posix(path: str) -> str:
+    """Normalize a documented source path with POSIX rules, on any platform."""
+    return posixpath.normpath(path)
 
 
 def _valid_date(value: str) -> bool:
@@ -181,7 +186,7 @@ def lint(wiki: Path) -> list[Issue]:
             for item in sources:
                 if not isinstance(item, str) or not (
                     item in source_slugs
-                    or (item.startswith("raw/") and os.path.normpath(item).startswith("raw/"))
+                    or (item.startswith("raw/") and _norm_posix(item).startswith("raw/"))
                 ):
                     issues.append(Issue(
                         "ERROR", "FM02", rel,

@@ -33,7 +33,10 @@ def _parse_value(key: str, raw: str) -> str | list[str]:
         inner = inner.strip()
         if not inner:
             raise FrontmatterError(f"empty inline list for {key}")
-        return [item.strip() for item in inner.split(",")]
+        items = [item.strip() for item in inner.split(",")]
+        if any(not item for item in items):
+            raise FrontmatterError(f"empty item in inline list for {key}: {raw}")
+        return items
     if "," in raw or ":" in raw:
         raise FrontmatterError(f"invalid scalar value for {key}")
     if key == "updated":

@@ -429,6 +429,38 @@ def test_fm02_sources_raw_path_negative(tmp_path: Path) -> None:
     assert "FM02" not in codes(issues)
 
 
+def test_fm02_sources_raw_path_check_is_platform_independent(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "sources/alpha.md", page("Alpha", "sources", "See [[beta]]."))
+    write(wiki, "entities/beta.md", page("Beta", "entities"))
+    assert "FM02" not in codes(lint(wiki))
+    # The check must behave like posixpath even when the platform would use
+    # ntpath (on Windows os.path.normpath("raw/a.txt") gives "raw\a.txt").
+    import posixpath
+
+    from brainstew.lint import _norm_posix
+
+    assert _norm_posix("raw/a.txt") == posixpath.normpath("raw/a.txt")
+    assert _norm_posix("raw/a.txt").startswith("raw/")
+    assert _norm_posix("raw/../raw/a.txt") == posixpath.normpath("raw/../raw/a.txt")
+    assert _norm_posix("raw/../raw/a.txt").startswith("raw/")
+    assert _norm_posix("raw/../../outside.txt") == posixpath.normpath("raw/../../outside.txt")
+    assert not _norm_posix("raw/../../outside.txt").startswith("raw/")
+
+    # ntpath would produce a backslash separator, so the POSIX raw/ prefix
+    # check would fail under ntpath-style behaviour; the check uses posixpath.
+    import ntpath
+
+    assert posixpath.normpath("raw/a.txt") != ntpath.normpath("raw/a.txt")
+    assert ntpath.normpath("raw/a.txt").startswith("raw") and not ntpath.normpath("raw/a.txt").startswith("raw/")
+    assert _norm_posix("raw/a.txt").startswith("raw/")
+
+    # PurePosixPath inputs must normalize under POSIX rules too.
+    from pathlib import PurePosixPath
+
+    assert _norm_posix(str(PurePosixPath("raw/../raw/a.txt"))) == "raw/a.txt"
+
+
 # --- index.md structure ---
 
 

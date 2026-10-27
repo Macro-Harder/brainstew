@@ -110,6 +110,39 @@ def test_empty_list_rejected() -> None:
         parse_frontmatter("---\ntags: []\n---\n")
 
 
+def test_empty_item_in_inline_list_rejected() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntags: [a,]\n---\n")
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntags: [,a]\n---\n")
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntags: [a,,b]\n---\n")
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntags: [a, ]\n---\n")
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\ntags: [ a,,b ]\n---\n")
+
+
+def test_empty_item_in_sources_list_rejected() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\nsources: [raw/a.txt,]\n---\n")
+
+
+def test_empty_item_in_inline_list_via_lint(tmp_path) -> None:
+    from brainstew.lint import lint
+
+    wiki = tmp_path / "wiki"
+    (wiki / "sources").mkdir(parents=True)
+    text = BASE.replace("tags: [optics, light]\n", "tags: [a,]\n")
+    (wiki / "sources" / "empty.md").write_text(text, encoding="utf-8")
+    (wiki / "index.md").write_text("# Wiki Index\n", encoding="utf-8")
+    (wiki / "log.md").write_text("# Wiki Log\n", encoding="utf-8")
+    issues = lint(wiki)
+    fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/empty.md"]
+    assert len(fm02) == 1
+    assert "empty item" in fm02[0].message
+
+
 def test_empty_text() -> None:
     with pytest.raises(FrontmatterError):
         parse_frontmatter("")
