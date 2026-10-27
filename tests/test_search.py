@@ -156,6 +156,19 @@ def test_cli_limit_default_ten(tmp_path: Path, capsys) -> None:
     assert len(out.strip().splitlines()) == 10
 
 
+def test_finding_f1_cli_rejects_symlinked_wiki_dir(tmp_path: Path, capsys) -> None:
+    real = tmp_path / "real"
+    build_wiki(real)
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "wiki").symlink_to(real / "wiki", target_is_directory=True)
+    rc = main(["--root", str(root), "search", "lens"])
+    out, err = capsys.readouterr()
+    assert rc == 2
+    assert out == ""
+    assert "symlink" in err
+
+
 def test_cli_missing_wiki_dir(tmp_path: Path, capsys) -> None:
     rc = main(["--root", str(tmp_path), "search", "lens"])
     out, err = capsys.readouterr()
