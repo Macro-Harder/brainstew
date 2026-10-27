@@ -234,6 +234,20 @@ def test_finding_f9_control_chars_escaped_in_output(tmp_path: Path, capsys) -> N
     assert "\\x07" in out
 
 
+def test_finding_f29_bidi_controls_escaped_in_output(tmp_path: Path, capsys) -> None:
+    text = (
+        "## [2026-01-22] ingest | \u202evil\u202c Heading\n"
+        "- bullet with \u200e marks \u2066isolate\u2069 end\n"
+    )
+    make_wiki(tmp_path, text)
+    rc = main(["--root", str(tmp_path), "log"])
+    out, _ = capsys.readouterr()
+    assert rc == 0
+    for ch in "\u202e\u202c\u200e\u2066\u2069":
+        assert ch not in out
+        assert f"\\u{ord(ch):04x}" in out
+
+
 def test_finding_f13_split_entries_rejects_malformed_heading() -> None:
     with pytest.raises(LogReadError):
         split_entries("## Just Some Heading\n- bullet\n")

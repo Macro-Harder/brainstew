@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import re
+import unicodedata
 import sys
 from pathlib import Path
 
@@ -66,9 +67,17 @@ def _escape_ctrl(match: re.Match[str]) -> str:
     return "".join(f"\\x{ord(ch):02x}" for ch in match.group())
 
 
+def _escape_char(ch: str) -> str:
+    if _CTRL_RE.match(ch):
+        return f"\\x{ord(ch):02x}"
+    if unicodedata.category(ch) == "Cf":
+        return f"\\u{ord(ch):04x}"
+    return ch
+
+
 def render(entries: list[tuple[str, list[str]]]) -> str:
     text = "\n\n".join("\n".join([h, *b]) for h, b in entries)
-    return _CTRL_RE.sub(_escape_ctrl, text)
+    return "".join(_escape_char(ch) for ch in text)
 
 
 def run(args: argparse.Namespace) -> int:
