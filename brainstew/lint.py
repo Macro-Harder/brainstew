@@ -36,7 +36,7 @@ def _esc(text: str) -> str:
     """Escape control characters so they cannot inject terminal escapes."""
     out: list[str] = []
     for ch in text:
-        if ord(ch) < 0x20 or ch == chr(0x7f):
+        if ord(ch) < 0x20 or 0x7f <= ord(ch) <= 0x9f:
             out.append(ch.encode("unicode_escape").decode("ascii"))
         else:
             out.append(ch)

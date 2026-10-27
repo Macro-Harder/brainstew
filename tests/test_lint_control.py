@@ -76,6 +76,17 @@ def test_finding_f26_filename_control_chars_escaped(tmp_path: Path, capsys: pyte
     assert "wiki/entities/beta\\x1b[31m.md" in out
 
 
+def test_finding_f26_c1_control_chars_escaped(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = make_wiki(tmp_path)
+    write(root, "wiki/entities/beta\x85\x9b[31m.md", FM.format(title="Beta Three", type="entity", summary="Beta summary", body="See [[alpha]].", updated="2026-01-20"))
+    rc = main(["--root", str(root), "lint"])
+    out, _ = capsys.readouterr()
+    assert rc == 1
+    assert "\x85" not in out
+    assert "\x9b" not in out
+    assert "wiki/entities/beta\\x85\\x9b[31m.md" in out
+
+
 def test_finding_f26_root_path_control_chars_escaped(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     root = tmp_path / "ro\x1bot"
     root.mkdir()
