@@ -20,17 +20,24 @@ class Page:
     links: list[str] = field(default_factory=list)
 
 
-def iter_page_files(wiki: Path) -> list[Path]:
+def iter_page_files(wiki: Path) -> tuple[list[Path], list[Path]]:
+    """Return (readable page files, unreadable category directories)."""
     files: list[Path] = []
+    errors: list[Path] = []
     for folder in PAGE_DIRS:
         d = Path(wiki) / folder
         if d.is_symlink() or not d.is_dir():
             continue
-        files.extend(sorted(
-            p for p in d.iterdir()
+        try:
+            entries = sorted(d.iterdir())
+        except OSError:
+            errors.append(d)
+            continue
+        files.extend(
+            p for p in entries
             if p.suffix == ".md" and not p.is_symlink() and p.is_file()
-        ))
-    return files
+        )
+    return files, errors
 
 
 def load_page(path: Path) -> tuple[Path, Page | None]:
@@ -54,10 +61,14 @@ def discover_pages(wiki: Path) -> list[tuple[Path, Page | None]]:
     """Load every page under the four wiki subfolders (non-recursive).
 
     index.md, log.md and stray .md files in wiki/ root are not pages.
-    Unreadable pages come back as (path, None) so lint can flag them.
+    Unreadable pages and unreadable category directories come back as
+    (path, None) so lint can flag them.
     """
     out: list[tuple[Path, Page | None]] = []
-    for path in iter_page_files(Path(wiki)):
+    files, errors = iter_page_files(Path(wiki))
+    for path in errors:
+        out.append((path, None))
+    for path in files:
         try:
             out.append(load_page(path))
         except (ValueError, OSError):

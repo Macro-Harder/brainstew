@@ -73,6 +73,9 @@ def _check_page(page, issues: list[Issue]) -> None:
 
 def _check_index(wiki: Path, pages, issues: list[Issue]) -> None:
     index = wiki / "index.md"
+    if index.is_symlink():
+        issues.append(Issue("ERROR", "IX03", "wiki/index.md", "symlinked index.md"))
+        return
     if not index.is_file():
         issues.append(Issue("ERROR", "IX03", "wiki/index.md", "missing index.md"))
         return
@@ -129,6 +132,9 @@ def _check_index(wiki: Path, pages, issues: list[Issue]) -> None:
 
 def _check_log(wiki: Path, issues: list[Issue]) -> None:
     log = wiki / "log.md"
+    if log.is_symlink():
+        issues.append(Issue("ERROR", "LG02", "wiki/log.md", "symlinked log.md"))
+        return
     if not log.is_file():
         issues.append(Issue("ERROR", "LG02", "wiki/log.md", "missing log.md"))
         return
@@ -155,21 +161,27 @@ def lint(wiki: Path) -> list[Issue]:
     pages = []
     for path, page in discover_pages(wiki):
         if page is None:
-            rel = f"wiki/{path.parent.name}/{path.name}"
-            try:
-                text = path.read_text(encoding="utf-8")
-            except OSError as exc:
-                issues.append(Issue("ERROR", "FM02", rel, f"unreadable: {exc.strerror or exc}"))
-                continue
-            except UnicodeDecodeError:
-                issues.append(Issue("ERROR", "FM02", rel, "invalid UTF-8"))
-                continue
-            try:
-                parse_frontmatter(text)
-                message = "invalid frontmatter"
-            except FrontmatterError as exc:
-                message = str(exc)
-            issues.append(Issue("ERROR", "FM02", rel, message))
+            if path.suffix == ".md" and path.parent.name in PAGE_DIRS:
+                rel = f"wiki/{path.parent.name}/{path.name}"
+            else:
+                rel = f"wiki/{path.parent.name}"
+            if path.suffix == ".md":
+                try:
+                    text = path.read_text(encoding="utf-8")
+                except OSError as exc:
+                    issues.append(Issue("ERROR", "FM02", rel, f"unreadable: {exc.strerror or exc}"))
+                    continue
+                except UnicodeDecodeError:
+                    issues.append(Issue("ERROR", "FM02", rel, "invalid UTF-8"))
+                    continue
+                try:
+                    parse_frontmatter(text)
+                    message = "invalid frontmatter"
+                except FrontmatterError as exc:
+                    message = str(exc)
+                issues.append(Issue("ERROR", "FM02", rel, message))
+            else:
+                issues.append(Issue("ERROR", "FM02", rel, f"unreadable directory: {path.name}"))
             continue
         pages.append(page)
         _check_page(page, issues)
