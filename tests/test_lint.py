@@ -717,3 +717,22 @@ def test_unreadable_log_reported(tmp_path: Path) -> None:
         os.chmod(log, 0o644)
     assert any(i.code == "LG02" and i.path == "wiki/log.md" and "unreadable" in i.message
                for i in issues)
+
+
+def test_finding_f15_unreadable_category_dir_reported_at_category_path(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    d = wiki / "concepts"
+    d.mkdir()
+    if os.geteuid() == 0:
+        pytest.skip("root ignores file permissions")
+    os.chmod(d, 0)
+    try:
+        issues = lint(wiki)  # must not raise
+    finally:
+        os.chmod(d, 0o755)
+    hits = [i for i in issues if i.code == "FM02" and "unreadable directory" in i.message]
+    assert len(hits) == 1
+    assert hits[0].path == "wiki/concepts"
+    assert hits[0].severity == "ERROR"
+    assert hits[0].message
+    assert "Traceback" not in hits[0].message

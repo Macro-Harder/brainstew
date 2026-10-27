@@ -162,7 +162,7 @@ def lint(wiki: Path) -> list[Issue]:
             if path.suffix == ".md" and path.parent.name in PAGE_DIRS:
                 rel = f"wiki/{path.parent.name}/{path.name}"
             else:
-                rel = f"wiki/{path.parent.name}"
+                rel = f"wiki/{path.relative_to(wiki)}"
             if path.suffix == ".md":
                 try:
                     text = path.read_text(encoding="utf-8")
