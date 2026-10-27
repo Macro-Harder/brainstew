@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from brainstew.frontmatter import parse_frontmatter
+from brainstew.frontmatter import FrontmatterError, parse_frontmatter
 
 PAGE_DIRS = ("sources", "entities", "concepts", "synthesis")
 LINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
@@ -46,7 +46,10 @@ def load_page(path: Path) -> tuple[Path, Page | None]:
         text = path.read_text(encoding="utf-8")
     except (UnicodeDecodeError, OSError):
         return path, None
-    meta, body = parse_frontmatter(text)
+    try:
+        meta, body = parse_frontmatter(text)
+    except FrontmatterError:
+        return path, None
     return path, Page(
         slug=path.stem,
         path=path,

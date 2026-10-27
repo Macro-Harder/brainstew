@@ -190,6 +190,30 @@ def test_malformed_list_bracket_rejected() -> None:
         parse_frontmatter("---\ntags: [item1, [item2]]\n---\n")
 
 
+def test_indented_frontmatter_line_rejected() -> None:
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter("---\n  title: Indented\n---\n")
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter(BASE.replace("title: Fresnel Lens\n", "    title: Fresnel Lens\n"))
+    with pytest.raises(FrontmatterError):
+        parse_frontmatter(BASE.replace("updated: 2026-01-20\n", "\tupdated: 2026-01-20\n"))
+
+
+def test_blank_lines_in_frontmatter_allowed() -> None:
+    text = (
+        "---\n"
+        "\n"
+        "title: Fresnel Lens\n"
+        "\n"
+        "type: source\n"
+        "updated: 2026-01-20\n"
+        "---\n"
+    )
+    meta, body = parse_frontmatter(text)
+    assert meta["title"] == "Fresnel Lens"
+    assert meta["type"] == "source"
+
+
 def test_no_duplicate_keys_parses_cleanly() -> None:
     meta, body = parse_frontmatter(valid_text())
     assert meta["title"] == "Fresnel Lens"

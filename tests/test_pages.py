@@ -72,6 +72,16 @@ def test_multiple_links_in_order(tmp_path: Path) -> None:
     assert page.links == ["b", "c", "b"]
 
 
+def test_load_page_returns_none_for_invalid_frontmatter(tmp_path: Path) -> None:
+    from brainstew.pages import load_page
+
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "badfm.md", "no fence here\n")
+    path = wiki / "sources" / "badfm.md"
+    result = load_page(path)
+    assert result == (path, None)
+
+
 def test_unparseable_page_reports_path_with_none(tmp_path: Path) -> None:
     wiki = tmp_path / "wiki"
     write_page(wiki, "sources", "broken.md", "no fence here\n")

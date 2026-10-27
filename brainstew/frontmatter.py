@@ -61,6 +61,8 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str | list[str]], str]:
         stripped = line.strip()
         if not stripped:
             continue
+        if line != line.lstrip():
+            raise FrontmatterError(f"indented frontmatter line: {stripped}")
         key, sep, raw = stripped.partition(":")
         if not sep:
             raise FrontmatterError(f"invalid frontmatter line: {line.strip()}")
