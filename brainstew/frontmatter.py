@@ -46,6 +46,7 @@ def _parse_value(key: str, raw: str) -> str | list[str]:
 
 def parse_frontmatter(text: str) -> tuple[dict[str, str | list[str]], str]:
     """Parse a `---` fenced frontmatter block; return (meta, body)."""
+    text = text.lstrip("﻿")
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         raise FrontmatterError("first line is not '---'")

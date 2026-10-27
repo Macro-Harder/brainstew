@@ -199,6 +199,15 @@ def test_indented_frontmatter_line_rejected() -> None:
         parse_frontmatter(BASE.replace("updated: 2026-01-20\n", "\tupdated: 2026-01-20\n"))
 
 
+def test_finding_f12_leading_bom_stripped() -> None:
+    bom = "\ufeff"
+    meta, body = parse_frontmatter(bom + valid_text())
+    assert meta["title"] == "Fresnel Lens"
+    assert meta["type"] == "source"
+    assert meta["updated"] == "2026-01-20"
+    assert body == "Body text."
+
+
 def test_blank_lines_in_frontmatter_allowed() -> None:
     text = (
         "---\n"
