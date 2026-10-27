@@ -597,6 +597,37 @@ def test_ix02_slug_in_correct_section_negative(tmp_path: Path) -> None:
     assert "IX01" not in codes(issues)
 
 
+def test_finding_f22_link_in_index_prose_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "index.md", INDEX.replace(
+        "## Concepts\n",
+        "## Concepts\nRelevant background: [[ghost]] and [[alpha]].\n",
+    ))
+    issues = lint(wiki)
+    ix02 = [i for i in issues if i.code == "IX02" and i.path == "wiki/index.md"]
+    assert ix02, "non-bullet index lines containing links must be rejected"
+
+
+def test_finding_f22_link_before_any_heading_rejected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "index.md", INDEX.replace(
+        "# Wiki Index\n",
+        "# Wiki Index\n\nSee [[alpha]] first.\n",
+    ))
+    issues = lint(wiki)
+    ix02 = [i for i in issues if i.code == "IX02" and i.path == "wiki/index.md"]
+    assert ix02, "links on non-bullet lines before any heading must be rejected"
+
+
+def test_finding_f22_prose_without_links_accepted(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "index.md", INDEX.replace(
+        "## Concepts\n",
+        "## Concepts\nPlain prose without any links.\n",
+    ))
+    assert "IX02" not in codes(lint(wiki))
+
+
 # --- log.md heading dates ---
 
 
