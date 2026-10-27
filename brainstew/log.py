@@ -40,6 +40,8 @@ def split_entries(text: str) -> list[tuple[str, list[str]]]:
             heading = line
             bullets = []
         elif heading is None and line.strip():
+            if line == "# Wiki Log":
+                continue
             raise LogReadError(
                 f"log.md has content outside a log entry: {line}"
             )
