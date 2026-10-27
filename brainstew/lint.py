@@ -185,11 +185,11 @@ def lint(wiki: Path) -> list[Issue]:
         _check_page(page, issues)
 
     source_slugs = {p.slug for p in pages if p.folder == "sources"}
-    slug_counts = Counter(p.slug for p in pages)
-    slugs = set(slug_counts)
+    slug_counts = Counter(p.slug.casefold() for p in pages)
+    slugs = {p.slug for p in pages}
     for page in pages:
         rel = f"wiki/{page.folder}/{page.slug}.md"
-        if slug_counts[page.slug] > 1:
+        if slug_counts[page.slug.casefold()] > 1:
             issues.append(Issue("ERROR", "DU01", rel, f"duplicate slug: {page.slug}"))
         sources = page.meta.get("sources")
         if isinstance(sources, list):

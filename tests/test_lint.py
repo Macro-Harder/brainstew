@@ -251,6 +251,17 @@ def test_du01_duplicate_slug(tmp_path: Path) -> None:
     assert all(i.path.endswith("alpha.md") for i in issues if i.code == "DU01")
 
 
+def test_finding_f11_case_variant_slug_collision_detected(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "entities/Alpha.md", page("Alpha Two", "entities", "See [[alpha]]."))
+    issues = lint(wiki)
+    du01 = [i for i in issues if i.code == "DU01"]
+    assert du01, "case-variant slug 'Alpha' must collide with existing slug 'alpha'"
+    assert {i.path for i in du01} == {"wiki/sources/alpha.md", "wiki/entities/Alpha.md"}
+    # negative: slugs that differ in more than case are still distinct
+    assert "DU01" not in codes(lint(make_wiki(tmp_path / "negative")))
+
+
 def test_du01_negative_unique_slugs(tmp_path: Path) -> None:
     assert "DU01" not in codes(lint(make_wiki(tmp_path)))
 
