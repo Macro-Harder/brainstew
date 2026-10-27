@@ -26,10 +26,16 @@ def iter_page_files(wiki: Path) -> tuple[list[Path], list[Path]]:
     errors: list[Path] = []
     for folder in PAGE_DIRS:
         d = Path(wiki) / folder
-        if d.is_symlink():
+        try:
+            is_symlink = d.is_symlink()
+            is_dir = d.is_dir()
+        except OSError:
             errors.append(d)
             continue
-        if not d.is_dir():
+        if is_symlink:
+            errors.append(d)
+            continue
+        if not is_dir:
             continue
         try:
             entries = sorted(d.iterdir())

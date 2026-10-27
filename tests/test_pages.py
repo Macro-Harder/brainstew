@@ -244,6 +244,19 @@ def test_finding_f18_docstrings_describe_unreadable_file_behavior() -> None:
     assert "unreadable" in load_doc
 
 
+def test_finding_f24_inaccessible_wiki_dir_reported_cleanly(tmp_path) -> None:
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "real.md", make_page("Real", "sources"))
+    wiki.chmod(0o000)
+    try:
+        pages = discover_pages(wiki)
+    finally:
+        wiki.chmod(0o755)
+    paths = [p for p, _ in pages]
+    assert wiki / "sources" in paths
+    assert all(p is None for _, p in pages)
+
+
 def test_readable_page_loads_normally(tmp_path) -> None:
     wiki = tmp_path / "wiki"
     write_page(wiki, "sources", "fine.md", make_page("Fine", "sources"))
