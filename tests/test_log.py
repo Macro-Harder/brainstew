@@ -130,6 +130,7 @@ def test_finding_f19_missing_wiki_dir_diagnostic(tmp_path: Path, capsys) -> None
 
 
 def test_cli_missing_log_exit_two(tmp_path: Path, capsys) -> None:
+    (tmp_path / "wiki").mkdir()
     rc = main(["--root", str(tmp_path), "log"])
     out, err = capsys.readouterr()
     assert rc == 2
