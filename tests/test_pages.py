@@ -234,6 +234,16 @@ def test_unreadable_page_reports_path_with_none(tmp_path: Path, monkeypatch) -> 
     assert result[wiki / "sources" / "good.md"] is None
 
 
+def test_finding_f18_docstrings_describe_unreadable_file_behavior() -> None:
+    from brainstew.pages import iter_page_files, load_page
+
+    iter_doc = (iter_page_files.__doc__ or "").lower()
+    assert "readable" not in iter_doc or "unreadable" in iter_doc
+    load_doc = (load_page.__doc__ or "").lower()
+    assert "frontmatter is invalid" in load_doc
+    assert "unreadable" in load_doc
+
+
 def test_readable_page_loads_normally(tmp_path) -> None:
     wiki = tmp_path / "wiki"
     write_page(wiki, "sources", "fine.md", make_page("Fine", "sources"))

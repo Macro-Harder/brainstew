@@ -21,7 +21,7 @@ class Page:
 
 
 def iter_page_files(wiki: Path) -> tuple[list[Path], list[Path]]:
-    """Return (readable page files, unreadable category directories)."""
+    """Return (page files, unreadable category directories)."""
     files: list[Path] = []
     errors: list[Path] = []
     for folder in PAGE_DIRS:
@@ -44,7 +44,8 @@ def iter_page_files(wiki: Path) -> tuple[list[Path], list[Path]]:
 
 
 def load_page(path: Path) -> tuple[Path, Page | None]:
-    """Read one page file; return (path, None) when frontmatter is invalid."""
+    """Read one page file; return (path, None) when the file is unreadable
+    or frontmatter is invalid."""
     try:
         text = path.read_text(encoding="utf-8")
     except (UnicodeDecodeError, OSError):
