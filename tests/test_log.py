@@ -121,6 +121,14 @@ def test_cli_no_match_for_op_exit_zero(tmp_path: Path, capsys) -> None:
     assert out == "## [2026-01-21] edit | Updated Page\n- revised text\n"
 
 
+def test_finding_f19_missing_wiki_dir_diagnostic(tmp_path: Path, capsys) -> None:
+    rc = main(["--root", str(tmp_path), "log"])
+    out, err = capsys.readouterr()
+    assert rc == 2
+    assert out == ""
+    assert err == f"error: no wiki dir at {tmp_path / 'wiki'}\n"
+
+
 def test_cli_missing_log_exit_two(tmp_path: Path, capsys) -> None:
     rc = main(["--root", str(tmp_path), "log"])
     out, err = capsys.readouterr()

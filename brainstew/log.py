@@ -79,6 +79,9 @@ def run(args: argparse.Namespace) -> int:
     if wiki.is_symlink():
         print(f"error: {wiki} is a symlink; refusing to read", file=sys.stderr)
         return 2
+    if not wiki.is_dir():
+        print(f"error: no wiki dir at {wiki}", file=sys.stderr)
+        return 2
     log = wiki / "log.md"
     if log.is_symlink():
         print(f"error: {log} is a symlink; refusing to read", file=sys.stderr)
