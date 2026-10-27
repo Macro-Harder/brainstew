@@ -257,6 +257,28 @@ def test_finding_f24_inaccessible_wiki_dir_reported_cleanly(tmp_path) -> None:
     assert all(p is None for _, p in pages)
 
 
+def test_finding_f28_oversized_page_rejected(tmp_path, monkeypatch) -> None:
+    import brainstew.pages as pages_mod
+    from brainstew.pages import load_page
+
+    wiki = tmp_path / "wiki"
+    write_page(wiki, "sources", "big.md", make_page("Big", "sources", "x" * 500))
+    (wiki / "sources" / "small.md").write_text(make_page("Small", "sources"), encoding="utf-8")
+    monkeypatch.setattr(pages_mod, "MAX_PAGE_BYTES", 200)
+
+    big_path = wiki / "sources" / "big.md"
+    assert load_page(big_path) == (big_path, None)
+    small = load_page(wiki / "sources" / "small.md")
+    assert small[1] is not None
+
+    pages = dict(discover_pages(wiki))
+    assert pages[big_path] is None
+    assert pages[wiki / "sources" / "small.md"] is not None
+
+    load_doc = (pages_mod.load_page.__doc__ or "").lower()
+    assert "max_page_bytes" in load_doc
+
+
 def test_readable_page_loads_normally(tmp_path) -> None:
     wiki = tmp_path / "wiki"
     write_page(wiki, "sources", "fine.md", make_page("Fine", "sources"))

@@ -8,6 +8,7 @@ from brainstew.frontmatter import FrontmatterError, parse_frontmatter
 
 PAGE_DIRS = ("sources", "entities", "concepts", "synthesis")
 LINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
+MAX_PAGE_BYTES = 1_000_000
 
 
 @dataclass
@@ -50,9 +51,11 @@ def iter_page_files(wiki: Path) -> tuple[list[Path], list[Path]]:
 
 
 def load_page(path: Path) -> tuple[Path, Page | None]:
-    """Read one page file; return (path, None) when the file is unreadable
-    or frontmatter is invalid."""
+    """Read one page file; return (path, None) when the file is unreadable,
+    frontmatter is invalid, or it exceeds MAX_PAGE_BYTES."""
     try:
+        if path.stat().st_size > MAX_PAGE_BYTES:
+            return path, None
         text = path.read_text(encoding="utf-8")
     except (UnicodeDecodeError, OSError):
         return path, None
