@@ -280,6 +280,19 @@ def test_finding_f8_search_escapes_control_chars_in_type(tmp_path: Path, capsys,
     assert "evil2\tsour\\x1b[31mce\t" in out
 
 
+def test_finding_f27_search_escapes_control_chars_in_unreadable_page_error(tmp_path: Path, capsys) -> None:
+    wiki = tmp_path / "wiki"
+    # Invalid UTF-8 makes the page unreadable, triggering the stderr diagnostic.
+    (wiki / "sources").mkdir(parents=True)
+    (wiki / "sources" / "ev\x1bil.md").write_bytes(b"---\n\xff\xfe---\n")
+    rc = main(["--root", str(tmp_path), "search", "lens"])
+    out, err = capsys.readouterr()
+    assert rc == 1
+    assert "\x1b" not in err, "raw control char must not reach stderr"
+    assert "\\x1b" in err
+    assert "cannot read" in err
+
+
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
     build_wiki(tmp_path)
     proc = subprocess.run(

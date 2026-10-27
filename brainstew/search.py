@@ -24,6 +24,13 @@ def _score(page: Page, terms: list[str]) -> int:
     return total
 
 
+def _escape(text: str) -> str:
+    return "".join(
+        ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii")
+        for ch in text
+    )
+
+
 def search(wiki: Path, query: str) -> list[tuple[Page, int]]:
     terms = query.lower().split()
     if not terms:
@@ -35,20 +42,13 @@ def search(wiki: Path, query: str) -> list[tuple[Page, int]]:
                 rel = path.relative_to(wiki.parent)
             except ValueError:
                 rel = path
-            print(f"error: cannot read {rel}: skipping", file=sys.stderr)
+            print(f"error: cannot read {_escape(str(rel))}: skipping", file=sys.stderr)
             continue
         score = _score(page, terms)
         if score > 0:
             scored.append((page, score))
     scored.sort(key=lambda ps: (-ps[1], _title(ps[0])))
     return scored
-
-
-def _escape(text: str) -> str:
-    return "".join(
-        ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii")
-        for ch in text
-    )
 
 
 def run(args: argparse.Namespace) -> int:
