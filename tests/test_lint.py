@@ -464,6 +464,16 @@ def test_fm02_sources_raw_path_check_is_platform_independent(tmp_path: Path) -> 
 # --- index.md structure ---
 
 
+def test_finding_f2_all_links_on_index_bullet_checked(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    write(wiki, "index.md", INDEX.replace(
+        "- [[alpha]] - Alpha summary",
+        "- [[alpha]] - Alpha summary, see also [[ghost]]",
+    ))
+    issues = lint(wiki)
+    assert any("unknown slug: [[ghost]]" in i.message and i.path == "wiki/index.md" for i in issues)
+
+
 def test_ix02_index_heading_wrong_order(tmp_path: Path) -> None:
     wiki = make_wiki(tmp_path)
     text = INDEX.replace("## Synthesis\n", "## Entities\n\n## Synthesis\n")

@@ -98,9 +98,7 @@ def _check_index(wiki: Path, pages, issues: list[Issue]) -> None:
             if heading not in bullets:
                 bullets[heading] = []
         elif heading is not None and line.startswith("- "):
-            m = LINK_RE.search(line)
-            if m:
-                bullets[heading].append(m.group(1))
+            bullets[heading].extend(m.group(1) for m in LINK_RE.finditer(line))
     if order != list(INDEX_HEADINGS):
         issues.append(Issue(
             "ERROR", "IX02", "wiki/index.md",
