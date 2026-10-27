@@ -1,5 +1,6 @@
 """Tests for lint: one positive and one clean negative per code."""
 
+import os
 import re
 import subprocess
 import sys
@@ -545,3 +546,72 @@ def test_invalid_utf8_never_raises(tmp_path: Path) -> None:
     (wiki / "log.md").write_bytes(b"\xff\xfe\x00")
     issues = lint(wiki)  # must not raise
     assert issues
+
+
+def test_unreadable_page_reported(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    page = wiki / "sources" / "alpha.md"
+    page.write_text("x", encoding="utf-8")
+    if os.geteuid() == 0:
+        pytest.skip("root ignores file permissions")
+    os.chmod(page, 0)
+    try:
+        issues = lint(wiki)  # must not raise
+    finally:
+        os.chmod(page, 0o644)
+    fm02 = [i for i in issues if i.code == "FM02" and i.path == "wiki/sources/alpha.md"]
+    assert len(fm02) == 1
+    assert fm02[0].severity == "ERROR"
+    assert fm02[0].message
+    assert "Traceback" not in fm02[0].message
+    assert all(i.path != "wiki/entities/beta.md" or i.code != "FM02" for i in issues)
+
+
+def test_unreadable_page_does_not_stop_other_checks(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    page = wiki / "entities" / "beta.md"
+    page.write_text("x", encoding="utf-8")
+    if os.geteuid() == 0:
+        pytest.skip("root ignores file permissions")
+    os.chmod(page, 0)
+    try:
+        issues = lint(wiki)  # must not raise
+    finally:
+        os.chmod(page, 0o644)
+    assert any(i.code == "FM02" and i.path == "wiki/entities/beta.md" for i in issues)
+    paths = [i.path for i in issues]
+    assert "wiki/sources/alpha.md" in paths
+    assert "wiki/index.md" in paths
+    codes_list = [i.code for i in issues if i.path == "wiki/entities/beta.md"]
+    assert codes_list == sorted(codes_list)
+    assert [(i.path, i.code) for i in issues] == sorted((i.path, i.code) for i in issues)
+
+
+def test_unreadable_index_reported(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    index = wiki / "index.md"
+    index.write_text("x", encoding="utf-8")
+    if os.geteuid() == 0:
+        pytest.skip("root ignores file permissions")
+    os.chmod(index, 0)
+    try:
+        issues = lint(wiki)  # must not raise
+    finally:
+        os.chmod(index, 0o644)
+    assert any(i.code == "FM02" and i.path == "wiki/index.md" and "unreadable" in i.message
+               for i in issues)
+
+
+def test_unreadable_log_reported(tmp_path: Path) -> None:
+    wiki = make_wiki(tmp_path)
+    log = wiki / "log.md"
+    log.write_text("x", encoding="utf-8")
+    if os.geteuid() == 0:
+        pytest.skip("root ignores file permissions")
+    os.chmod(log, 0)
+    try:
+        issues = lint(wiki)  # must not raise
+    finally:
+        os.chmod(log, 0o644)
+    assert any(i.code == "LG02" and i.path == "wiki/log.md" and "unreadable" in i.message
+               for i in issues)

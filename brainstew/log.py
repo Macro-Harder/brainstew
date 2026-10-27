@@ -35,6 +35,8 @@ def read_log(wiki: Path) -> list[tuple[str, list[str]]]:
         text = (wiki / "log.md").read_text(encoding="utf-8")
     except UnicodeDecodeError as exc:
         raise LogReadError(f"log.md is not valid UTF-8: {exc}") from exc
+    except OSError as exc:
+        raise LogReadError(f"cannot read log.md: {exc.strerror or exc}") from exc
     return split_entries(text)
 
 

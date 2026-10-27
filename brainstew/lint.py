@@ -73,6 +73,9 @@ def _check_index(wiki: Path, pages, issues: list[Issue]) -> None:
         return
     try:
         text = index.read_text(encoding="utf-8")
+    except OSError as exc:
+        issues.append(Issue("ERROR", "FM02", "wiki/index.md", f"unreadable: {exc.strerror or exc}"))
+        return
     except UnicodeDecodeError:
         issues.append(Issue("ERROR", "FM02", "wiki/index.md", "invalid UTF-8"))
         return
@@ -126,6 +129,9 @@ def _check_log(wiki: Path, issues: list[Issue]) -> None:
         return
     try:
         text = log.read_text(encoding="utf-8")
+    except OSError as exc:
+        issues.append(Issue("ERROR", "LG02", "wiki/log.md", f"unreadable: {exc.strerror or exc}"))
+        return
     except UnicodeDecodeError:
         issues.append(Issue("ERROR", "FM02", "wiki/log.md", "invalid UTF-8"))
         return
@@ -146,16 +152,19 @@ def lint(wiki: Path) -> list[Issue]:
         if page is None:
             rel = f"wiki/{path.parent.name}/{path.name}"
             try:
-                path.read_text(encoding="utf-8")
+                text = path.read_text(encoding="utf-8")
+            except OSError as exc:
+                issues.append(Issue("ERROR", "FM02", rel, f"unreadable: {exc.strerror or exc}"))
+                continue
             except UnicodeDecodeError:
                 issues.append(Issue("ERROR", "FM02", rel, "invalid UTF-8"))
-            else:
-                try:
-                    parse_frontmatter(path.read_text(encoding="utf-8"))
-                    message = "invalid frontmatter"
-                except FrontmatterError as exc:
-                    message = str(exc)
-                issues.append(Issue("ERROR", "FM02", rel, message))
+                continue
+            try:
+                parse_frontmatter(text)
+                message = "invalid frontmatter"
+            except FrontmatterError as exc:
+                message = str(exc)
+            issues.append(Issue("ERROR", "FM02", rel, message))
             continue
         pages.append(page)
         _check_page(page, issues)

@@ -1,11 +1,15 @@
 """Tests for the log command."""
 
+import os
+import os
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from brainstew.cli import main
-from brainstew.log import read_log, render, split_entries
+from brainstew.log import LogReadError, read_log, render, split_entries
 
 LOG = (
     "# Wiki Log\n"
@@ -134,6 +138,57 @@ def test_cli_invalid_utf8_log_exit_one_no_traceback(tmp_path: Path, capsys) -> N
     assert out == ""
     assert err
     assert "Traceback" not in err
+
+
+def test_cli_unreadable_log_exits_cleanly(tmp_path: Path, capsys) -> None:
+    make_wiki(tmp_path)
+    log = tmp_path / "wiki" / "log.md"
+    if os.geteuid() == 0:
+        pytest.skip("root ignores file permissions")
+    os.chmod(log, 0)
+    try:
+        rc = main(["--root", str(tmp_path), "log"])
+    finally:
+        os.chmod(log, 0o644)
+    out, err = capsys.readouterr()
+    assert rc != 0
+    assert out == ""
+    assert err
+    assert "Traceback" not in err
+    assert "log.md" in err
+
+
+def test_read_log_unreadable_log_raises_log_read_error(tmp_path: Path) -> None:
+    make_wiki(tmp_path)
+    log = tmp_path / "wiki" / "log.md"
+    if os.geteuid() == 0:
+        pytest.skip("root ignores file permissions")
+    os.chmod(log, 0)
+    try:
+        with pytest.raises(LogReadError):
+            read_log(tmp_path / "wiki")
+    finally:
+        os.chmod(log, 0o644)
+
+
+def test_cli_unreadable_log_subprocess_no_traceback(tmp_path: Path) -> None:
+    make_wiki(tmp_path)
+    log = tmp_path / "wiki" / "log.md"
+    if os.geteuid() == 0:
+        pytest.skip("root ignores file permissions")
+    os.chmod(log, 0)
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "brainstew", "--root", str(tmp_path), "log"],
+            capture_output=True,
+            text=True,
+        )
+    finally:
+        os.chmod(log, 0o644)
+    assert proc.returncode != 0
+    assert proc.stdout == ""
+    assert proc.stderr
+    assert "Traceback" not in proc.stderr
 
 
 def test_cli_subprocess_end_to_end(tmp_path: Path) -> None:
