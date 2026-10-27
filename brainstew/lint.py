@@ -32,6 +32,17 @@ def _norm_posix(path: str) -> str:
     return posixpath.normpath(path.replace("\\", "/"))
 
 
+def _esc(text: str) -> str:
+    """Escape control characters so they cannot inject terminal escapes."""
+    out: list[str] = []
+    for ch in text:
+        if ord(ch) < 0x20 or ch == chr(0x7f):
+            out.append(ch.encode("unicode_escape").decode("ascii"))
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
 def _valid_date(value: str) -> bool:
     if not DATE_RE.fullmatch(value):
         return False
@@ -234,11 +245,11 @@ def run(args: argparse.Namespace) -> int:
     for part in root.parts[1:] if root.is_absolute() else root.parts:
         prefix = prefix / part
         if prefix.is_symlink():
-            print(f"error: {prefix} is a symlink; refusing to read", file=sys.stderr)
+            print(f"error: {_esc(str(prefix))} is a symlink; refusing to read", file=sys.stderr)
             return 2
     wiki = root / "wiki"
     if wiki.is_symlink():
-        print(f"error: {wiki} is a symlink; refusing to read", file=sys.stderr)
+        print(f"error: {_esc(str(wiki))} is a symlink; refusing to read", file=sys.stderr)
         return 2
     if not wiki.is_dir():
         print(f"error: no wiki dir at {wiki}", file=sys.stderr)
@@ -247,7 +258,7 @@ def run(args: argparse.Namespace) -> int:
     if args.strict:
         issues = [Issue("ERROR", i.code, i.path, i.message) for i in issues]
     for issue in issues:
-        print(f"{issue.severity} {issue.code} {issue.path}: {issue.message}")
+        print(f"{issue.severity} {issue.code} {_esc(issue.path)}: {_esc(issue.message)}")
     errors = sum(1 for i in issues if i.severity == "ERROR")
     warnings = len(issues) - errors
     print(f"lint: {errors} errors, {warnings} warnings")
