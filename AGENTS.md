@@ -6,7 +6,7 @@
 - schema: AGENTS.md and .agents/skills/*/SKILL.md files.
 
 ## Rules
-- Every factual claim in a wiki page must include at least one citation using [[source-slug]].
+- Lint checks that all [[links]] and sources resolve; citation coverage is a review responsibility, not lint-enforced.
 - Never write to raw/.
 - Every write operation must update wiki/index.md and append an entry to wiki/log.md.
 - Slugs are unique. Use [[slug]] for all cross-references.

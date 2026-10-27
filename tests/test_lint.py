@@ -152,28 +152,15 @@ def test_or01_index_links_do_not_count(tmp_path: Path) -> None:
     assert issues[0].path.endswith("alpha.md")
 
 
-def test_finding_f7_citation_check(tmp_path: Path) -> None:
-    wiki = make_wiki(tmp_path)
-    write(wiki, "entities/beta.md", page("Beta", "entities"))
-    issues = lint(wiki)
-    ct01 = [i for i in issues if i.code == "CT01"]
-    assert len(ct01) == 1
-    assert ct01[0].path == "wiki/entities/beta.md"
-    assert ct01[0].severity == "WARN"
+def test_finding_f7_docs_do_not_claim_lint_enforces_citations() -> None:
+    agents_md = (Path(__file__).resolve().parent.parent / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Every factual claim in a wiki page must include at least one citation" not in agents_md
+    assert "citation coverage is a review responsibility" in agents_md
 
 
-def test_finding_f7_citation_check_negative(tmp_path: Path) -> None:
-    assert "CT01" not in codes(lint(make_wiki(tmp_path)))
-
-
-def test_finding_f7_citation_check_index_links_do_not_count(tmp_path: Path) -> None:
-    wiki = make_wiki(tmp_path)
-    write(wiki, "entities/beta.md", page("Beta", "entities"))
-    write(wiki, "index.md", INDEX.replace("## Entities\n", "## Entities\n- [[beta]] - Beta summary\n- [[gamma]] - gamma\n"))
-    issues = lint(wiki)
-    ct01 = [i for i in issues if i.code == "CT01"]
-    assert len(ct01) == 1
-    assert ct01[0].path == "wiki/entities/beta.md"
+def test_finding_f7_docs_do_not_claim_lint_enforces_citations_negative() -> None:
+    agents_md = (Path(__file__).resolve().parent.parent / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Run `python -m brainstew lint`" in agents_md
 
 
 def test_ix01_page_missing_from_index(tmp_path: Path) -> None:

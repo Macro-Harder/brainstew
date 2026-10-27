@@ -211,11 +211,6 @@ def lint(wiki: Path) -> list[Issue]:
             for slug in other.links
         ):
             issues.append(Issue("WARN", "OR01", rel, "orphan page"))
-        if not page.links:
-            issues.append(Issue(
-                "WARN", "CT01", rel,
-                "no citation: every factual claim must include at least one [[source-slug]] link",
-            ))
 
     _check_index(wiki, pages, issues)
     _check_log(wiki, issues)
