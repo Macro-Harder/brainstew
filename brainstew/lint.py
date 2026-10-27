@@ -196,7 +196,11 @@ def lint(wiki: Path) -> list[Issue]:
             for item in sources:
                 if not isinstance(item, str) or not (
                     item in source_slugs
-                    or (item.startswith("raw/") and _norm_posix(item).startswith("raw/"))
+                    or (
+                        item.startswith("raw/")
+                        and _norm_posix(item).startswith("raw/")
+                        and (wiki.parent / _norm_posix(item)).is_file()
+                    )
                 ):
                     issues.append(Issue(
                         "ERROR", "FM02", rel,
