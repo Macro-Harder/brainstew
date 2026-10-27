@@ -89,6 +89,22 @@ def test_zero_hits_empty(tmp_path: Path) -> None:
     assert search(wiki, "qqqq") == []
 
 
+def test_finding_f14_discovery_error_is_surfaced_on_stderr(tmp_path: Path, monkeypatch, capsys) -> None:
+    from brainstew import pages
+
+    wiki = build_wiki(tmp_path)
+
+    def broken_iter(wiki: Path):
+        return [], [wiki / "concepts"]
+
+    monkeypatch.setattr(pages, "iter_page_files", broken_iter)
+    rc = main(["--root", str(tmp_path), "search", "lens"])
+    out, err = capsys.readouterr()
+    assert err, "discovery error must be reported on stderr, not swallowed"
+    assert "concepts" in err
+    assert rc == 1
+
+
 def test_cli_hit_exit_zero(tmp_path: Path, capsys) -> None:
     build_wiki(tmp_path)
     rc = main(["--root", str(tmp_path), "search", "lens"])

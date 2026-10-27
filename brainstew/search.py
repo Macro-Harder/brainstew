@@ -29,8 +29,13 @@ def search(wiki: Path, query: str) -> list[tuple[Page, int]]:
     if not terms:
         return []
     scored = []
-    for _, page in discover_pages(wiki):
+    for path, page in discover_pages(wiki):
         if page is None:
+            try:
+                rel = path.relative_to(wiki.parent)
+            except ValueError:
+                rel = path
+            print(f"error: cannot read {rel}: skipping", file=sys.stderr)
             continue
         score = _score(page, terms)
         if score > 0:
