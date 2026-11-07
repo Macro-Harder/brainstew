@@ -9,8 +9,8 @@ brainstew implements the LLM Wiki pattern: AgenC reads raw source material, dist
 ## Quickstart
 
 ```bash
-git clone https://github.com/Macro-Harder/brainstew-apache
-cd brainstew-apache
+git clone https://github.com/Macro-Harder/brainstew
+cd brainstew
 python -m brainstew lint
 python -m brainstew search lens
 python -m brainstew log
