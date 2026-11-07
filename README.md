@@ -6,6 +6,8 @@ A starter kit for an AgenC-maintained markdown wiki.
 
 brainstew implements the LLM Wiki pattern: AgenC reads raw source material, distills it into a structured set of linked markdown pages, and keeps that wiki up to date as it works. The wiki becomes a persistent, searchable knowledge base that AgenC itself maintains over time, with an index and a log that record what was added and why.
 
+> **Add-on:** [brainstew-threads](https://github.com/Macro-Harder/brainstew-threads) — thread wikis for brainstew, one wiki per agent/project, with a context tool that pulls only what matters. A DLC for brainstew, not a fork.
+
 ## Quickstart
 
 ```bash
