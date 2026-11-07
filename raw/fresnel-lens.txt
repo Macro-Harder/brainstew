@@ -1,0 +1,11 @@
+The Fresnel Lens and Lighthouse Illumination
+
+Before the nineteenth century most lighthouses used open fires or simple oil lamps behind reflectors. Light output was weak and easily lost in fog or rain. Shipwrecks remained common near coasts at night.
+
+Augustin-Jean Fresnel, a French civil engineer, studied the behavior of light. In 1822 he demonstrated his lighthouse lens design built from concentric rings of prisms. Each ring bent rays from a central lamp toward the horizon. The first lighthouse fitted with one was Cordouan, lit in 1823. France adopted it quickly and the United States adopted it widely in the 1850s.
+
+Because the lens was assembled from thin stepped rings it required far less glass than a solid lens of the same diameter. It was lighter, less expensive, and collected light over a wider angle. A single lamp could now produce a beam visible more than twenty miles at sea. Rotating the lens created a characteristic flash pattern that sailors could identify.
+
+The change sharply reduced nighttime wrecks. Lenses were later classified by order: first-order units stood over six feet tall for primary coastal lights while sixth-order units served small harbors.
+
+Although electric lamps and modern optics have replaced many original installations, historic Fresnel lenses remain in service at preserved lighthouses. The stepped-ring principle is still used in traffic signals and stage lighting. Fresnel's work combined optical theory with practical engineering to solve a real safety problem using minimal material.

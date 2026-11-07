@@ -1,0 +1,129 @@
+"""Show entries from the wiki log."""
+
+import argparse
+import datetime
+import re
+import unicodedata
+import sys
+from pathlib import Path
+
+OP_RE = re.compile(r"## \[\d{4}-\d{2}-\d{2}\] (ingest|query|lint|edit) \| ")
+HEADING_RE = re.compile(r"## \[(\d{4}-\d{2}-\d{2})\] (ingest|query|lint|edit) \| \S")
+
+
+class LogReadError(ValueError):
+    """Raised when log.md cannot be read or contains malformed entries."""
+
+
+def _valid_date(value: str) -> bool:
+    try:
+        datetime.date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+def split_entries(text: str) -> list[tuple[str, list[str]]]:
+    """Split log text into (heading, bullet lines) pairs."""
+    entries: list[tuple[str, list[str]]] = []
+    heading: str | None = None
+    bullets: list[str] = []
+    for line in text.splitlines():
+        if line.startswith("## "):
+            if heading is not None:
+                entries.append((heading, bullets))
+            match = HEADING_RE.match(line)
+            if match is None:
+                raise LogReadError(f"log.md has a malformed heading: {line}")
+            if not _valid_date(match.group(1)):
+                raise LogReadError(f"log.md has an impossible date in heading: {line}")
+            heading = line
+            bullets = []
+        elif heading is None and line.strip():
+            if line == "# Wiki Log":
+                continue
+            raise LogReadError(
+                f"log.md has content outside a log entry: {line}"
+            )
+        elif line.startswith("- ") and heading is not None:
+            bullets.append(line)
+    if heading is not None:
+        entries.append((heading, bullets))
+    return entries
+
+
+def read_log(wiki: Path) -> list[tuple[str, list[str]]]:
+    try:
+        text = (wiki / "log.md").read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise LogReadError(f"log.md is not valid UTF-8: {exc}") from exc
+    except OSError as exc:
+        raise LogReadError(f"cannot read log.md: {exc.strerror or exc}") from exc
+    return split_entries(text)
+
+
+_CTRL_RE = re.compile(r"[\x00-\x09\x0b-\x1f\x7f\x80-\x9f]")
+
+
+def _escape_ctrl(match: re.Match[str]) -> str:
+    return "".join(f"\\x{ord(ch):02x}" for ch in match.group())
+
+
+def _escape_char(ch: str) -> str:
+    if _CTRL_RE.match(ch):
+        return f"\\x{ord(ch):02x}"
+    if unicodedata.category(ch) == "Cf":
+        return f"\\u{ord(ch):04x}"
+    return ch
+
+
+def render(entries: list[tuple[str, list[str]]]) -> str:
+    text = "\n\n".join("\n".join([h, *b]) for h, b in entries)
+    return "".join(_escape_char(ch) for ch in text)
+
+
+def run(args: argparse.Namespace) -> int:
+    root = Path(args.root).absolute()
+    current = Path(root.anchor)
+    for part in root.parts[1:]:
+        current = current / part
+        if current.is_symlink():
+            print(f"error: {current} is a symlink; refusing to read", file=sys.stderr)
+            return 2
+    wiki = root / "wiki"
+    if wiki.is_symlink():
+        print(f"error: {wiki} is a symlink; refusing to read", file=sys.stderr)
+        return 2
+    if not wiki.is_dir():
+        print(f"error: no wiki dir at {wiki}", file=sys.stderr)
+        return 2
+    log = wiki / "log.md"
+    try:
+        log_is_symlink = log.is_symlink()
+        log_is_file = log.is_file()
+    except OSError as exc:
+        print(
+            f"error: cannot inspect log.md at {log}: {exc.strerror or exc}",
+            file=sys.stderr,
+        )
+        return 2
+    if log_is_symlink:
+        print(f"error: {log} is a symlink; refusing to read", file=sys.stderr)
+        return 2
+    if not log_is_file:
+        print(f"error: no log.md at {log}", file=sys.stderr)
+        return 2
+    try:
+        entries = read_log(wiki)
+    except LogReadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    if args.op:
+        entries = [e for e in entries if OP_RE.match(e[0]) and OP_RE.match(e[0]).group(1) == args.op]
+    if args.n > 0:
+        entries = entries[-args.n:]
+    else:
+        entries = []
+    if entries:
+        print(render(entries))
+    return 0
